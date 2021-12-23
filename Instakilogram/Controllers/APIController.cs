@@ -21,7 +21,8 @@ namespace Instakilogram.Controllers
             this.Neo = gc;
             this.Service = us.Value;
         }
-
+        //neki moj komentar
+        //neki moj probni komentar
 
         //[HttpGet]
         //[Route("LogIn")]
