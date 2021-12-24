@@ -7,7 +7,7 @@ namespace Instakilogram.Service
 {
     public class URLs
     {
-        public string VerifikacijaURL { get; set; }
+        public string VerifyURL { get; set; }
         public string PasswordResetURL { get; set; }
     }
 }
