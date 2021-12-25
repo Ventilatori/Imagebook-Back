@@ -16,10 +16,10 @@ namespace Instakilogram.Controllers
     {
         private IGraphClient Neo;
         private IUserService Service;
-        public APIController(IGraphClient gc, IOptions<IUserService> us)
+        public APIController(IGraphClient gc/*, IOptions<IUserService> us*/)
         {
             this.Neo = gc;
-            this.Service = us.Value;
+         //   this.Service = us.Value;
         }
 
 
