@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using Neo4jClient;
 using System;
+using StackExchange.Redis;
 
 namespace Instakilogram
 {
@@ -37,18 +38,20 @@ namespace Instakilogram
 
             services.Configure<URLs>(Configuration.GetSection("URLs"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
-            services.Configure<Neo4jConfig>(Configuration.GetSection("NeO4jConnectionSettings"));
+            //services.Configure<Neo4jConfig>(Configuration.GetSection("NeO4jConnectionSettings"));
+            services.AddScoped<IUserService, UserService>();
+
+            //konekcija na neo4j
 
             //GraphClient client = new GraphClient(new Uri(this.Neo4jConf.Server), this.Neo4jConf.UserName, this.Neo4jConf.Password);
             var client = new BoltGraphClient(new Uri("bolt://localhost:7687"), "neo4j", "neo");
             client.ConnectAsync();
             services.AddSingleton<IGraphClient>(client);
 
+            //konekcija na redis
 
-            //DI for neo4j driver
-
-            //services.AddControllers();
-            //services.AddSingleton(GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "neo")));
+            var multiplexer = ConnectionMultiplexer.Connect("localhost"); //port:6379
+            services.AddSingleton<IConnectionMultiplexer>(multiplexer);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -65,7 +68,7 @@ namespace Instakilogram
                 app.UseHsts();
             }
 
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
             if (!env.IsDevelopment())
             {

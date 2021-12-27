@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace WinScout.RequestResponse
 {
-    public class LogInOdgovor
+    public class LogInResponse
     {
         public string UserName{ get; set; }
 
@@ -16,7 +16,7 @@ namespace WinScout.RequestResponse
         public string ProfilePicture { get; set; }
         public string? Description { get; set; }
 
-        public LogInOdgovor(string username, string name, string cookie, string profilepic = null, string description = null)
+        public LogInResponse(string username, string name, string cookie, string profilepic = null, string description = null)
         {
             this.UserName = username;
             this.Name = name;

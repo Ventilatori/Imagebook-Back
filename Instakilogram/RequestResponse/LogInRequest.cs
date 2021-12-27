@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WinScout.RequestResponse
 {
-    public class LogInZahtev
+    public class LogInRequest
     {
         [Required]
         public string Mail { get; set; }
