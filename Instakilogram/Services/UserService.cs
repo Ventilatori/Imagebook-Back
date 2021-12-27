@@ -29,14 +29,14 @@ namespace Instakilogram.Service
             Standard,
             Profile
         };
-        string AddImage(IFormFile? picture, IUserService.ImageType img_type = IUserService.ImageType.Standard);
-        //bool ObrisiSliku(string slika, ImageType tipSlike, string tipProizvoda = null);
+        string AddImage(IFormFile? picture, ImageType img_type = ImageType.Standard);
+        bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
         int PinGenerator();
         //void PinUpdate(Korisnik korisnik, int PIN);
         bool CheckPassword(byte[] sifra, byte[] salt, string zahtev);
         void PasswordHash(out string hash_string, out string salt_string, string sifra);
         void SendMail(User user, MailType type);
-        bool UserExists(string new_user_name, string new_mail);
+        bool UserExists(string new_user_name, string new_mail = "");
         void TmpStoreAccount(User user, IFormFile Picture = null);
         string ApproveAccount(string key);
     }
@@ -73,40 +73,30 @@ namespace Instakilogram.Service
             }
             return file_path;
         }
-        //public bool ObrisiSliku(string slika, IUserService.ImageType tipSlike, string tipProizvoda = null)
-        //{
-        //    if(!String.Equals(slika, "default.png"))
-        //    {
-        //        string folderPath = "Slike\\";
-        //        switch (tipSlike)
-        //        {
-        //            case IUserService.ImageType.Prodavac:
-        //                folderPath += tipSlike.ToString();
-        //                break;
-        //            case IUserService.ImageType.Proizvod:
-        //                folderPath += tipSlike.ToString() + "\\" + tipProizvoda;
-        //                break;
-        //            default:
-        //                return false;
-        //        }
-        //        string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
-        //        string filePath = Path.Combine(uploadsFolder, slika);
+        public bool DeleteImage(string picture_path, IUserService.ImageType img_type = IUserService.ImageType.Standard)
+        {
+            if (!String.Equals(picture_path, "default.png"))
+            {
+                string folderPath = "Images\\"+img_type.ToString();
+                
+                string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
+                string filePath = Path.Combine(uploadsFolder, picture_path);
 
-        //        if (System.IO.File.Exists(filePath))
-        //        {
-        //            System.IO.File.Delete(filePath);
-        //            return true;
-        //        }
-        //        else
-        //        {
-        //            return true;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        return true;
-        //    }
-        //}
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                    return true;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
+        }
 
         //mozda moze da se iskoristi za cookie
 
@@ -198,7 +188,7 @@ namespace Instakilogram.Service
         //    Context.SaveChanges();
         //}
 
-        public bool UserExists(string new_user_name, string new_mail)
+        public bool UserExists(string new_user_name, string new_mail = "")
         {
             var query = this.Neo.Cypher
                 .Match("(n:User)")
