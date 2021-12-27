@@ -8,20 +8,23 @@ namespace Instakilogram.Models
 {
     public class User
     {
-        public string UserName { get; set; }
-        public string Name { get; set; }
-        public string Mail { get; set; }
+        //public string UserName { get; set; }
+        //public string Name { get; set; }
+        //public string Mail { get; set; }
+        ////[JsonIgnore]
+        ////public byte[] Password { get; set; }
+        //public string Password { get; set; }
+        ////[JsonIgnore]
+        ////public byte[] Salt { get; set; }
+        //public string Salt { get; set; }
+        //public string? Description { get; set; }
+        //public string? ProfilePicture { get; set; }
+        //public bool Online { get; set; }
         //[JsonIgnore]
-        //public byte[] Password { get; set; }
-        public string Password { get; set; }
-        //[JsonIgnore]
-        //public byte[] Salt { get; set; }
-        public string Salt { get; set; }
-        public string? Description { get; set; }
-        public string? ProfilePicture { get; set; }
-        public bool Online { get; set; }
-        [JsonIgnore]
-        public int? PIN { get; set; }
+        //public int? PIN { get; set; }
 
+        public string username { get; set; }
+        public string name { get; set; }
+        public int age { get; set; }
     }
 }

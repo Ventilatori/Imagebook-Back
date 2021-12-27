@@ -43,6 +43,12 @@ namespace Instakilogram
             var client = new BoltGraphClient(new Uri("bolt://localhost:7687"), "neo4j", "neo");
             client.ConnectAsync();
             services.AddSingleton<IGraphClient>(client);
+
+
+            //DI for neo4j driver
+
+            //services.AddControllers();
+            //services.AddSingleton(GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "neo")));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

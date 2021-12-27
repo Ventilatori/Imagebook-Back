@@ -2,11 +2,15 @@
 using Instakilogram.Service;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Neo4j.Driver;
 using Neo4jClient;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Instakilogram.Models;
 
 namespace Instakilogram.Controllers
 {
@@ -15,20 +19,12 @@ namespace Instakilogram.Controllers
     public class APIController : ControllerBase
     {
         private IGraphClient Neo;
-        private IUserService Service;
-        public APIController(IGraphClient gc/*, IOptions<IUserService> us*/)
+        private readonly IDriver _driver;
+        //private IUserService Service;
+        public APIController(IGraphClient gc)
         {
             this.Neo = gc;
-         //   this.Service = us.Value;
         }
-
-
-        //[HttpGet]
-        //[Route("LogIn")]
-        //public async Task<IActionResult> SignIn([FromBody] LogInZahtev zahtev)
-        //{
-        //    return Ok();
-        //}
 
         [HttpGet]
         [Route("preuzmi")]
@@ -36,10 +32,32 @@ namespace Instakilogram.Controllers
         {
             var rez = await this.Neo.Cypher
                 .Match("(n:User)")
-                .Return(n => n.Head().CollectAs<User>()).ResultsAsync;
+                .Return<User>("n").ResultsAsync;
             List<User> korisnici = rez.ToList();
             User korisnik = korisnici.First();
-            return Ok(korisnik);
+            return Ok(rez);
+        }
+
+        [HttpGet]
+        [Route("GetFeed/{callerusername}")] //without time limit 24h
+        public async Task<IActionResult> GetFeed(string callerUsername)
+        {
+            var usersFollowed = await this.Neo.Cypher
+                .Match("(a:User)-[:FOLLOWS]->(b:User)")
+                .Where((User a) => a.username == callerUsername)
+                .Return<User>("b").ResultsAsync;
+
+            var photos = new List<Photo>();
+            foreach (User u in usersFollowed)
+            {
+                var phList = await this.Neo.Cypher
+                    .Match("(a:User)-[:UPLOADED]->(p:Picture)")
+                    .Where((User a) => a.username == u.username)
+                    .Return<Photo>("p").ResultsAsync;
+                foreach (Photo pp in phList)
+                    photos.Add(pp);
+            }
+            return Ok(photos);
 
         }
 
@@ -56,24 +74,5 @@ namespace Instakilogram.Controllers
 
             return Ok();
         }
-
-
-
-        //Dictionary<string,string> param = new Dictionary<string,string>();
-        //param["username"]
-        /*
-            +
-            "{" +
-            "UserName = $username," +
-            "Name = $name" +
-            "Mail = $mail" +
-            "Password = $password" +
-            "Salt = $salt" +
-            "Description = $description" +
-            "ProfilePicture = $profilepicture" +
-            "Online = $online" +
-            "PIN = $pin" +
-            "})")
-        */
     }
 }
