@@ -53,7 +53,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetFeed/{caller_username}")] //without time limit 24h
+        [Route("GetFeed/{callerUsername}")] //without time limit 24h
         public async Task<IActionResult> GetFeed(string callerUsername)
         {
             var usersFollowed = await this.Neo.Cypher
@@ -105,7 +105,7 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> FollowHashtag(string callerUsername, string hashtagToFollow)
         {
             await this.Neo.Cypher
-                .Match("(a:User),(b:HashTag)")
+                .Match("(a:User),(b:Hashtag)")
                 .Where("a.UserName = $userA AND b.Title = $hashtagB")
                 .WithParams(new { userA = callerUsername, hashtagB = hashtagToFollow })
                 .Create("(a)-[r:FOLLOWS]->(b)")
@@ -118,14 +118,13 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> Unfollow(string callerUsername, string hashtagToUnfollow)
         {
             await this.Neo.Cypher
-                .Match("(a:User)-[r:FOLLOWS]->(b:HashTag)")
+                .Match("(a:User)-[r:FOLLOWS]->(b:Hashtag)")
                 .Where("a.UserName = $userA AND b.Title = $hashtagB")
                 .WithParams(new { userA = callerUsername, hashtagB = hashtagToUnfollow })
                 .Delete("r")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
-
 
     }
 }
