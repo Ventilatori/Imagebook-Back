@@ -8,6 +8,8 @@ CREATE
 (sunce:Photo{Path:"mrk3", TimePosted:datetime("2017-06-02T10:23:32.122+0100"), Description: "SUNCEE"}),
 (oblak:Photo{Path:"mrk4", TimePosted:datetime("2018-06-02T10:23:32.122+0100"), Description: "OBLAKK"}),
 
+(nature:Hashtag{Title:"Nature"}),
+(sky:Hashtag{Title:"Nature"}),
 
 (clyde56)-[:UPLOADED]->(ker),
 (clyde56)-[:UPLOADED]->(drvo),
@@ -18,4 +20,9 @@ CREATE
 (johnnyz)-[:FOLLOWS]->(s4ra),
 (s4ra)-[:FOLLOWS]->(clyde56),
 
-(drvo)-[:TAGS]->(johnnyz);
+(drvo)-[:TAGS]->(johnnyz),
+
+(nature)-[:HASH_TAGS]->(drvo),
+(sky)-[:HASH_TAGS]->(oblak);
+
+
