@@ -38,29 +38,6 @@ namespace Instakilogram.Controllers
             return Ok(rez);
         }
 
-        [HttpGet]
-        [Route("GetFeed/{callerusername}")] //without time limit 24h
-        public async Task<IActionResult> GetFeed(string callerUsername)
-        {
-            var usersFollowed = await this.Neo.Cypher
-                .Match("(a:User)-[:FOLLOWS]->(b:User)")
-                .Where((User a) => a.username == callerUsername)
-                .Return<User>("b").ResultsAsync;
-
-            var photos = new List<Photo>();
-            foreach (User u in usersFollowed)
-            {
-                var phList = await this.Neo.Cypher
-                    .Match("(a:User)-[:UPLOADED]->(p:Picture)")
-                    .Where((User a) => a.username == u.username)
-                    .Return<Photo>("p").ResultsAsync;
-                foreach (Photo pp in phList)
-                    photos.Add(pp);
-            }
-            return Ok(photos);
-
-        }
-
         [HttpPost]
         [Route("dodaj")]
         public async Task<IActionResult> Dodaj([FromBody] User u)
@@ -70,9 +47,59 @@ namespace Instakilogram.Controllers
                 .Create("(n:User $korisnik)")
                 .WithParam("korisnik", u)
                 .Return(u => u.As<User>()).ResultsAsync;
-                //.ExecuteWithoutResultsAsync();
+            //.ExecuteWithoutResultsAsync();
 
             return Ok();
         }
+
+        [HttpGet]
+        [Route("GetFeed/{caller_username}")] //without time limit 24h
+        public async Task<IActionResult> GetFeed(string callerUsername)
+        {
+            var usersFollowed = await this.Neo.Cypher
+                .Match("(a:User)-[:FOLLOWS]->(b:User)")
+                .Where((User a) => a.UserName == callerUsername)
+                .Return<User>("b").ResultsAsync;
+
+            var photos = new List<Photo>();
+            foreach (User u in usersFollowed)
+            {
+                var phList = await this.Neo.Cypher
+                    .Match("(a:User)-[:UPLOADED]->(p:Photo)")
+                    .Where((User a) => a.UserName == u.UserName)
+                    .Return<Photo>("p").ResultsAsync;
+                foreach (Photo pp in phList)
+                    photos.Add(pp);
+            }
+            return Ok(photos);
+        }
+
+        [HttpPost]
+        [Route("Follow/{callerUsername}/{usernameToFollow}")] 
+        public async Task<IActionResult> Follow(string callerUsername, string usernameToFollow)
+        {
+            await this.Neo.Cypher
+                .Match("(a:User),(b:User)")
+                .Where("a.UserName = $userA AND b.UserName = $userB")
+                .WithParams(new { userA = callerUsername, userB = usernameToFollow })
+                .Create("(a)-[r:FOLLOWS]->(b)")
+                .ExecuteWithoutResultsAsync();
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("Unfollow/{callerUsername}/{usernameToFollow}")] 
+        public async Task<IActionResult> Unfollow(string callerUsername, string usernameToFollow)
+        {
+            await this.Neo.Cypher
+                .Match("(a)-[r:FOLLOWS]->(b)")
+                .Where("a.UserName = $userA AND b.UserName = $userB")
+                .WithParams(new { userA = callerUsername, userB = usernameToFollow })
+                .Delete("r")
+                .ExecuteWithoutResultsAsync();
+            return Ok();
+        }
+
+
     }
 }
