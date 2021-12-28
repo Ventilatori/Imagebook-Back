@@ -44,7 +44,7 @@ namespace Instakilogram.Controllers
         {
             var usersFollowed = await this.Neo.Cypher
                 .Match("(a:User)-[:FOLLOWS]->(b:User)")
-                .Where((User a) => a.username == callerUsername)
+                .Where((User a) => a.UserName == callerUsername)
                 .Return<User>("b").ResultsAsync;
 
             var photos = new List<Photo>();
@@ -52,7 +52,7 @@ namespace Instakilogram.Controllers
             {
                 var phList = await this.Neo.Cypher
                     .Match("(a:User)-[:UPLOADED]->(p:Picture)")
-                    .Where((User a) => a.username == u.username)
+                    .Where((User a) => a.UserName == u.UserName)
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
                     photos.Add(pp);
