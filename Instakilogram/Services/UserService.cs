@@ -32,9 +32,10 @@ namespace Instakilogram.Service
         string AddImage(IFormFile? picture, ImageType img_type = ImageType.Standard);
         bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
         int PinGenerator();
-        //void PinUpdate(Korisnik korisnik, int PIN);
-        bool CheckPassword(byte[] sifra, byte[] salt, string zahtev);
-        void PasswordHash(out string hash_string, out string salt_string, string sifra);
+        void SavePin(string mail, int PIN);
+        bool CheckPin(string mail, int new_pin);
+        bool CheckPassword(string sifra, string salt, string zahtev);
+        void PasswordHash(out string hash_string, out string salt_string, string password_string);
         void SendMail(User user, MailType type);
         bool UserExists(string new_user_name, string new_mail = "");
         void TmpStoreAccount(User user, IFormFile Picture = null);
@@ -113,16 +114,18 @@ namespace Instakilogram.Service
         //    SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
         //    return tokenHandler.WriteToken(token);
         //}
-        public bool CheckPassword(byte[] sifra, byte[] salt, string zahtev)
+        public bool CheckPassword(string hash, string salt_string, string password_string)
         {
+            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            byte[] valid_hash = Encoding.UTF8.GetBytes(hash);
             HMACSHA512 hashObj = new HMACSHA512(salt);
-            byte[] password = System.Text.Encoding.UTF8.GetBytes(zahtev);
-            byte[] hash = hashObj.ComputeHash(password);
+            byte[] password = System.Text.Encoding.UTF8.GetBytes(password_string);
+            byte[] computed_hash = hashObj.ComputeHash(password);
 
-            int len = hash.Length;
+            int len = computed_hash.Length;
             for (int i = 0; i < len; i++)
             {
-                if (sifra[i] != hash[i])
+                if (valid_hash[i] != computed_hash[i])
                 {
                     return false;
                 }
@@ -154,16 +157,16 @@ namespace Instakilogram.Service
                 text = text.Replace("~", URL.VerifyURL + user.UserName);
                 msg.Body = text;
             }
-            //else if (type == IUserService.MailType.ResetPassword)
-            //{
-            //    string path = Path.Combine(Environment.WebRootPath, "Mail\\ResetPassword.html");
-            //    string text = System.IO.File.ReadAllText(path);
-            //    int PIN = PinGenerator();
-            //    this.PinUpdate(korisnik, PIN);
-            //    text = text.Replace("`", PIN.ToString());
-            //    text = text.Replace("~", URL.PasswordResetURL + korisnik.ID);
-            //    msg.Body = text;
-            //}
+            else if (type == IUserService.MailType.ResetPassword)
+            {
+                string path = Path.Combine(Environment.WebRootPath, "Mail\\ResetPassword.html");
+                string text = System.IO.File.ReadAllText(path);
+                int PIN = PinGenerator();
+                this.SavePin(user.Mail, PIN);
+                text = text.Replace("`", PIN.ToString());
+                text = text.Replace("~", this.URL.PasswordResetURL);
+                msg.Body = text;
+            }
 
             msg.IsBodyHtml = true;
 
@@ -182,11 +185,20 @@ namespace Instakilogram.Service
             Random _rdm = new Random();
             return _rdm.Next(_min, _max);
         }
-        //public void PinUpdate(Korisnik korisnik, int PIN) {
-        //    korisnik.PIN = PIN;
-        //    Context.Update<Korisnik>(korisnik);
-        //    Context.SaveChanges();
-        //}
+        public void SavePin(string mail, int PIN)
+        {
+            DateTime d1 = DateTime.Now;
+            DateTime d2 = d1.AddDays(1);
+            TimeSpan t = d2 - d1;
+            var db = this.Redis.GetDatabase();
+            db.StringSetAsync(mail, PIN, t);
+        }
+        public bool CheckPin(string mail, int new_pin)
+        {
+            var db = this.Redis.GetDatabase();
+            int? saved_pin = Int32.Parse(db.StringGetAsync(mail).Result);
+            return saved_pin != null && new_pin == saved_pin ? true : false;
+        }
 
         public bool UserExists(string new_user_name, string new_mail = "")
         {

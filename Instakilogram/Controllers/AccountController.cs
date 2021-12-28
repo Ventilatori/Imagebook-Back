@@ -27,7 +27,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("SignUp")]
+        [Route("Register")]
         public async Task<IActionResult> SignUp([FromForm] string user_object, [FromForm] IFormFile? Picture)
         {
             SignUpRequest request = JsonConvert.DeserializeObject<SignUpRequest>(user_object);
@@ -141,6 +141,138 @@ namespace Instakilogram.Controllers
             return Ok();
 
         }
+
+        //ovo je samo ako zna password i zeli da ga promeni
+        [HttpPost]
+        [Route("PasswordReset")]
+        public async Task<IActionResult> ResetPassword([FromBody] PasswordChangeRequest request)
+        {
+            //cookie
+            string mail = "andrija.djordjevic.97@gmail.com";
+
+            Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
+                    .Match("(n:User)")
+                    .Where((User n) => n.Mail == mail);
+
+            User user = query.Return(n => n.As<User>())
+                    .ResultsAsync.Result.ToList().Single();
+
+            if (!this.Service.CheckPassword(user.Password, user.Salt, request.Old))
+            {
+                return BadRequest(new { message = "Pogresna sifra." });
+            }
+
+
+            string hash, salt;
+            this.Service.PasswordHash(out hash, out salt, request.New);
+
+            //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
+            await query.Set("n.password = $new.new_pass, n.salt = $new.new_salt")
+                //.Set("n.password = $new_pass, n.salt = $new_salt")
+                .WithParam("new", new {new_pass = hash, new_salt = salt})
+                //.WithParam("new_pass", hash)
+                //.WithParam("new_salt", salt)
+                .ExecuteWithoutResultsAsync();
+
+            return Ok(new { message = "Uspesno promenjena sifra." });
+
+        }
+
+        //ove 2 f-je dole je u slucaju da user zaboravi password
+        [HttpPost]
+        [Route("PasswordRecoverRequest")]
+        public async Task<IActionResult> PasswordRecoverRequest([FromBody] string mail)
+        {
+
+            if(!this.Service.UserExists("", mail))
+            {
+                return BadRequest(new { message = "Pogresan mejl." });
+            }
+
+            User user = this.Neo.Cypher
+                    .Match("(n:User)")
+                    .Where((User n) => n.Mail == mail)
+                    .Return(u=>u.As<User>())
+                    .ResultsAsync.Result.ToList().Single();
+
+            IUserService.MailType mail_type = IUserService.MailType.ResetPassword;
+            this.Service.SendMail(user, mail_type);
+
+            return Ok(new { message = "Poslat vam je mejl za promenu sifre." });
+        }
+
+        [HttpPost]
+        [Route("PasswordRecover")]
+        public async Task<IActionResult> PasswordRecover([FromBody] PasswordRecoverRequest request)
+        {
+            if(this.Service.CheckPin(request.Mail, request.PIN))
+            {
+                return BadRequest(new { message = "Pogresan pin." });
+            }
+
+            Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
+                    .Match("(n:User)")
+                    .Where((User n) => n.Mail == request.Mail);
+
+            User user = query.Return(u => u.As<User>())
+                .ResultsAsync.Result.ToList().Single();
+
+            string hash, salt;
+            this.Service.PasswordHash(out hash, out salt, request.NewPassword);
+
+            //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
+            await query.Set("n.password = $new.new_pass, n.salt = $new.new_salt")
+                //.Set("n.password = $new_pass, n.salt = $new_salt")
+                .WithParam("new", new { new_pass = hash, new_salt = salt })
+                //.WithParam("new_pass", hash)
+                //.WithParam("new_salt", salt)
+                .ExecuteWithoutResultsAsync();
+
+            return Ok(new { message = "Uspesno promenjena sifra." });
+        }
+
+
+        //[HttpPost]
+        //[Route("LogIn")]
+        //public async Task<IActionResult> SignIn([FromBody] LogInZahtev zahtev)
+        //{
+        //    Korisnik korisnik = await Context.Korisnici.Where(p => p.Mail == zahtev.Mail).FirstOrDefaultAsync();
+        //    if (korisnik == null)
+        //    {
+        //        return BadRequest(new { message = "Korisnik ne postoji. Moguce da ste uneli pogresan mail." });
+        //    }
+        //    string _message = Service.ProveriPrisutpNalogu(korisnik.ID);
+        //    if (_message != null)
+        //    {
+        //        return BadRequest(new { message = _message });
+        //    }
+        //    else if (!Service.ProveriSifru(korisnik.Password, korisnik.Salt, zahtev.Password))
+        //    {
+        //        return BadRequest(new { message = "Pogresna sifra." });
+        //    }
+
+        //    string token = Service.GenerisiToken(korisnik);
+        //    korisnik.Online = true;
+        //    Context.Update<Korisnik>(korisnik);
+        //    await Context.SaveChangesAsync();
+        //    LogInOdgovor odgovor = new LogInOdgovor(korisnik.ID, korisnik.Naziv, korisnik.TipKorisnika, token);
+
+        //    return Ok(odgovor);
+        //}
+
+
+        //[HttpPut]
+        //[Route("LogOut")]
+        //public async Task<IActionResult> LogOut()
+        //{
+        //    Korisnik korisnik = (Korisnik)HttpContext.Items["User"];
+
+        //    korisnik.Online = false;
+        //    Context.Update<Korisnik>(korisnik);
+        //    await Context.SaveChangesAsync();
+
+        //    return Ok();
+        //}
 
     }
 }
