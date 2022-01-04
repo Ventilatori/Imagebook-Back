@@ -11,6 +11,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Instakilogram.Models;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
+using Microsoft.AspNetCore.Http;
 
 namespace Instakilogram.Controllers
 {
@@ -20,10 +23,13 @@ namespace Instakilogram.Controllers
     {
         private IGraphClient Neo;
         private readonly IDriver _driver;
+        public  IHostingEnvironment hostingEnvironment;
+
         //private IUserService Service;
-        public APIController(IGraphClient gc)
+        public APIController(IGraphClient gc, IHostingEnvironment hostingEnv)
         {
             this.Neo = gc;
+            hostingEnvironment = hostingEnv;
         }
 
         [HttpGet]
@@ -125,6 +131,50 @@ namespace Instakilogram.Controllers
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
+
+
+        [HttpPost]
+        [Route("UploadProfilePic/{callerUsername}")]
+        public async Task<IActionResult> UploadProfilePic(string callerUsername, IFormFile file)
+        {
+            if (!file.ContentType.Contains("image"))
+            {
+                return Ok("bad image");
+            }
+          
+            var extension = "." + file.FileName.Split('.')[file.FileName.Split('.').Length - 1];
+            string fileName = DateTime.Now.Ticks + extension; //Create a new Name for the file due to security reasons.
+
+            var pathBuilt = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\callerUsername\\profilepics");
+
+            if (!Directory.Exists(pathBuilt))
+            {
+                Directory.CreateDirectory(pathBuilt);
+            }
+
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\callerUsername\\profilepics",
+                fileName);
+
+            using (var stream = new FileStream(path, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return Ok();
+        }
+        //[HttpPost]
+        //[Route("LikePhoto/{callerUsername}/{photoID}")]
+        //public async Task<IActionResult> LikePhoto(string callerUsername, string photoID)
+        //{
+        //    await this.Neo.Cypher
+        //        .Match("(a:User),(b:Hashtag)")
+        //        .Where("a.UserName = $userA AND b.Title = $hashtagB")
+        //        .WithParams(new { userA = callerUsername, hashtagB = hashtagToFollow })
+        //        .Create("(a)-[r:FOLLOWS]->(b)")
+        //        .ExecuteWithoutResultsAsync();
+        //    return Ok();
+        //}
+
 
     }
 }
