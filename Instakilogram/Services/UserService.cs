@@ -40,6 +40,8 @@ namespace Instakilogram.Service
         bool UserExists(string new_user_name, string new_mail = "");
         void TmpStoreAccount(User user, IFormFile Picture = null);
         string ApproveAccount(string key);
+        //User GetUser(string username);
+        //Hashtag GetOrCreateHashtag(string title);
     }
 
     public class UserService : IUserService
@@ -269,5 +271,35 @@ namespace Instakilogram.Service
             }
             return link;
         }
+
+        //public User GetUser(string username)
+        //{
+        //    User user = this.Neo.Cypher
+        //        .Match("(n:User)")
+        //        .Where((User u) => u.UserName == username)
+        //        .Return(n => n.As<User>())
+        //        .ResultsAsync.Result.ToList().Single();
+        //    return user;
+        //}
+        //public Hashtag GetOrCreateHashtag(string title)
+        //{
+        //    Hashtag hTag = this.Neo.Cypher
+        //        .Match("(h:Hashtag)")
+        //        .Where((Hashtag h) => h.Title == title)
+        //        .Return(h => h.As<Hashtag>())
+        //        .ResultsAsync.Result.ToList().Single();
+        //    if(hTag != null)
+        //    {
+        //        return hTag;
+        //    }
+        //    else
+        //    {
+        //        this.Neo.Cypher
+        //            .Create("(h:Hashtag $prop)")
+        //            .WithParam("prop", hTag)
+        //            .ExecuteWithoutResultsAsync();
+        //        return hTag;
+        //    }
+        //}
     }
 }
