@@ -66,6 +66,8 @@ namespace Instakilogram.Controllers
 
             return Ok(new { message = "Poslat vam je mail za validaciju."});
         }
+
+        //ubaciti redirect url u appsettings.json 
         [HttpPost]
         [Route("Verify/{key}")]
         public async Task<IActionResult> ValidateAccount(string key)
@@ -78,6 +80,7 @@ namespace Instakilogram.Controllers
             return BadRequest(new { message = "Doslo je do greske."});
         }
 
+        //[modifikacija]
         [HttpPost]
         [Route("ChangeAccountInfo")]
         public async Task<IActionResult> ChangeAccountInfo([FromForm] string? user_object, [FromForm] IFormFile? Picture)
@@ -108,17 +111,17 @@ namespace Instakilogram.Controllers
                     {
                         return BadRequest(new { message = "Korisnik vec postoji. Probajte drugi mail ili korisnicko ime, ili izvrsiti validaciju putem mejla." });
                     }
-                    query.Set("n.userName = $new_user_name")
+                    query.Set("n.userName: $new_user_name")
                         .WithParam("new_user_name", request.UserName);
                 }
                 if (!String.IsNullOrEmpty(request.Name))
                 {
-                    query.Set("n.name = $new_name")
+                    query.Set("n.name: $new_name")
                         .WithParam("new_name", request.Name);
                 }
                 if (!String.IsNullOrEmpty(request.Description))
                 {
-                    query.Set("n.description = $new_description")
+                    query.Set("n.description: $new_description")
                         .WithParam("new_description", request.Description);
                 }
                 await query.ExecuteWithoutResultsAsync();
@@ -133,7 +136,7 @@ namespace Instakilogram.Controllers
                     .ResultsAsync.Result.ToList().Single();
                 this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
                 string picture = this.Service.AddImage(Picture, IUserService.ImageType.Profile);
-                await query.Set("n.profilePicture = $new_profile_picture")
+                await query.Set("n.profilePicture: $new_profile_picture")
                     .WithParam("new_profile_picture", picture)
                     .ExecuteWithoutResultsAsync();
             }
@@ -142,6 +145,7 @@ namespace Instakilogram.Controllers
 
         }
 
+        //[modifikacija]
         //ovo je samo ako zna password i zeli da ga promeni
         [HttpPost]
         [Route("PasswordReset")]
@@ -167,7 +171,7 @@ namespace Instakilogram.Controllers
             this.Service.PasswordHash(out hash, out salt, request.New);
 
             //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
-            await query.Set("n.password = $new.new_pass, n.salt = $new.new_salt")
+            await query.Set("n.password: $new.new_pass, n.salt: $new.new_salt")
                 //.Set("n.password = $new_pass, n.salt = $new_salt")
                 .WithParam("new", new {new_pass = hash, new_salt = salt})
                 //.WithParam("new_pass", hash)
@@ -221,7 +225,7 @@ namespace Instakilogram.Controllers
             this.Service.PasswordHash(out hash, out salt, request.NewPassword);
 
             //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
-            await query.Set("n.password = $new.new_pass, n.salt = $new.new_salt")
+            await query.Set("n.password: $new.new_pass, n.salt: $new.new_salt")
                 //.Set("n.password = $new_pass, n.salt = $new_salt")
                 .WithParam("new", new { new_pass = hash, new_salt = salt })
                 //.WithParam("new_pass", hash)

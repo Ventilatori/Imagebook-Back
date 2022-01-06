@@ -31,6 +31,7 @@ namespace Instakilogram.Service
         };
         string AddImage(IFormFile? picture, ImageType img_type = ImageType.Standard);
         bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
+        bool ImageCheck(string mail, string picture_path);
         int PinGenerator();
         void SavePin(string mail, int PIN);
         bool CheckPin(string mail, int new_pin);
@@ -40,8 +41,10 @@ namespace Instakilogram.Service
         bool UserExists(string new_user_name, string new_mail = "");
         void TmpStoreAccount(User user, IFormFile Picture = null);
         string ApproveAccount(string key);
-        //User GetUser(string username);
-        //Hashtag GetOrCreateHashtag(string title);
+        User GetUser(string username);
+        Hashtag GetOrCreateHashtag(string title);
+        string ExtractPictureName(string url);
+        void UpdateHashtags(string picture_path);
     }
 
     public class UserService : IUserService
@@ -63,27 +66,27 @@ namespace Instakilogram.Service
         {
             string folderPath = "Images\\"+img_type.ToString();
             string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
-            string file_path;
+            string file_name;
             if (picture != null)
             {
-                file_path = Guid.NewGuid().ToString() + "_" + picture.FileName;
-                string filePath = Path.Combine(uploadsFolder, file_path);
-                picture.CopyTo(new FileStream(file_path, FileMode.Create));
+                file_name = Guid.NewGuid().ToString() + "_" + picture.FileName;
+                string filePath = Path.Combine(uploadsFolder, file_name);
+                picture.CopyTo(new FileStream(filePath, FileMode.Create));
             }
             else
             {
-                file_path = "default.png";
+                file_name = "default.png";
             }
-            return file_path;
+            return file_name;
         }
-        public bool DeleteImage(string picture_path, IUserService.ImageType img_type = IUserService.ImageType.Standard)
+        public bool DeleteImage(string picture_name, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
-            if (!String.Equals(picture_path, "default.png"))
+            if (!String.Equals(picture_name, "default.png"))
             {
                 string folderPath = "Images\\"+img_type.ToString();
                 
                 string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
-                string filePath = Path.Combine(uploadsFolder, picture_path);
+                string filePath = Path.Combine(uploadsFolder, picture_name);
 
                 if (System.IO.File.Exists(filePath))
                 {
@@ -99,6 +102,16 @@ namespace Instakilogram.Service
             {
                 return true;
             }
+        }
+        public bool ImageCheck(string mail, string picture_path)
+        {
+            Photo p = this.Neo.Cypher
+                .Match("(u:User {mail: $email})-[:OWNS]->(p:Photo {path: $photopath})")
+                .WithParam("email", mail)
+                .WithParam("photopath", picture_path)
+                .Return(p => p.As<Photo>())
+                .ResultsAsync.Result.ToList().Single();
+            return p == null ? false : true;
         }
 
         //mozda moze da se iskoristi za cookie
@@ -205,9 +218,9 @@ namespace Instakilogram.Service
         public bool UserExists(string new_user_name, string new_mail = "")
         {
             var query = this.Neo.Cypher
-                .Match("(n:User)")
+                .Match("(u:User)")
                 .Where((User u) => u.UserName == new_user_name || u.Mail == new_mail)
-                .Return(n => n.As<User>())
+                .Return(u => u.As<User>())
                 .ResultsAsync;
             User result = query.Result.ToList().Single();
             if(result != null)
@@ -262,7 +275,7 @@ namespace Instakilogram.Service
                 }
 
                 this.Neo.Cypher
-                    .Create("(n:User $prop)")
+                    .Create("(u:User $prop)")
                     .WithParam("prop",user)
                     .ExecuteWithoutResultsAsync();
 
@@ -272,34 +285,86 @@ namespace Instakilogram.Service
             return link;
         }
 
-        //public User GetUser(string username)
-        //{
-        //    User user = this.Neo.Cypher
-        //        .Match("(n:User)")
-        //        .Where((User u) => u.UserName == username)
-        //        .Return(n => n.As<User>())
-        //        .ResultsAsync.Result.ToList().Single();
-        //    return user;
-        //}
-        //public Hashtag GetOrCreateHashtag(string title)
-        //{
-        //    Hashtag hTag = this.Neo.Cypher
-        //        .Match("(h:Hashtag)")
-        //        .Where((Hashtag h) => h.Title == title)
-        //        .Return(h => h.As<Hashtag>())
-        //        .ResultsAsync.Result.ToList().Single();
-        //    if(hTag != null)
-        //    {
-        //        return hTag;
-        //    }
-        //    else
-        //    {
-        //        this.Neo.Cypher
-        //            .Create("(h:Hashtag $prop)")
-        //            .WithParam("prop", hTag)
-        //            .ExecuteWithoutResultsAsync();
-        //        return hTag;
-        //    }
-        //}
+        public string ExtractPictureName(string url)
+        {
+            string[] disassembled_url = url.Split("/");
+            return disassembled_url[5];
+        }
+
+        public void UpdateHashtags(string picture_path)
+        {
+
+            List<Hashtag> hash_list = this.Neo.Cypher
+                .Match("(h:Hashtag)-[r:HAVE]->(p:Photo {path: $photopath})")
+                .WithParam("photopath", picture_path)
+                .Delete("r")
+                .Return(h => h.CollectAs<Hashtag>())
+                .ResultsAsync.Result.ToList().Single().ToList();
+
+            foreach (Hashtag hashtag in hash_list)
+            {
+                //koriscenjem cypher f-je exists(), proveriti da li relacija uopste postoji i direktno obrisati hashtag sa svim njegovim granama
+                //jednom recju odraditi sve u 1 naredbi (query-ju)
+
+                //this.Neo.Cypher
+                //    .Match("(h:Hashtag {title: $val})-[r:HAVE]->(p:Photo)")
+                //    .WithParam("val", hashtag.Title)
+                //    .Where()
+
+                List<Photo> photos = this.Neo.Cypher
+                    .Match("(h:Hashtag {title: $val})-[r:HAVE]->(p:Photo)")
+                    .WithParam("val", hashtag.Title)
+                    .Return(p => p.CollectAs<Photo>())
+                    .ResultsAsync.Result.ToList().Single().ToList();
+
+                if (!photos.Any())
+                {
+                    this.Neo.Cypher
+                        .Match("(h:Hashtag {title: $val})-[r]->()")
+                        .WithParam("val", hashtag.Title)
+                        .Delete("r")
+                        .ExecuteWithoutResultsAsync();
+
+                    this.Neo.Cypher
+                        .Match("(h:Hashtag {title: $val})")
+                        .WithParam("val", hashtag.Title)
+                        .Delete("h")
+                        .ExecuteWithoutResultsAsync();
+                }
+
+                //menjanje profilne (property-ja) cvora, ako ne postoji slika 
+
+            }
+        }
+
+        public User GetUser(string username)
+        {
+            User user = this.Neo.Cypher
+                .Match("(n:User)")
+                .Where((User u) => u.UserName == username)
+                .Return(n => n.As<User>())
+                .ResultsAsync.Result.ToList().Single();
+            return user;
+        }
+        public Hashtag GetOrCreateHashtag(string title)
+        {
+            Hashtag hTag = this.Neo.Cypher
+                .Match("(h:Hashtag)")
+                .Where((Hashtag h) => h.Title == title)
+                .Return(h => h.As<Hashtag>())
+                .ResultsAsync.Result.ToList().Single();
+            if (hTag != null)
+            {
+                return hTag;
+            }
+            else
+            {
+                this.Neo.Cypher
+                    .Create("(h:Hashtag $prop)")
+                    .WithParam("prop", hTag)
+                    .ExecuteWithoutResultsAsync();
+                return hTag;
+            }
+        }
     }
 }

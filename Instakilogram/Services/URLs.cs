@@ -9,5 +9,7 @@ namespace Instakilogram.Service
     {
         public string VerifyURL { get; set; }
         public string PasswordResetURL { get; set; }
+        public string ProfileImagesPath { get; set; }
+        public string StandardImagesPath { get; set; }
     }
 }
