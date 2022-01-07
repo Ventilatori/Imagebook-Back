@@ -9,9 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Instakilogram.Authentication;
 
 namespace Instakilogram.Controllers
 {
+    [Auth]
     [Route("[controller]")]
     [ApiController]
     public class ImageController : Controller
@@ -25,26 +27,11 @@ namespace Instakilogram.Controllers
             this.Neo = gc;
         }
 
-        //[modifikacija]
         [HttpPost]
         [Route("AddPhoto")]
         public async Task<IActionResult> AddPhoto([FromForm] string? image_object, [FromForm] IFormFile Picture)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
-            //ovaj objekat (user) moze da se vrati iz cookie-a, tkd mozda ovaj deo sa obracanjem bazi nije potreban ovde
-            User user = this.Neo.Cypher
-                    .Match("(n:User)")
-                    .Where((User n) => n.Mail == mail)
-                    .Return(n => n.As<User>())
-                    .ResultsAsync.Result.ToList().Single();
-
-            if (user == null)
-            {
-                return BadRequest(new { message = "Korisnik ne postoji." });
-            }
-
-            //......odavde na dole je ok
+            string mail = HttpContext.Items["User"];
 
             if (Picture != null)
             {
@@ -109,18 +96,11 @@ namespace Instakilogram.Controllers
             }
         }
 
-        //[modifikacija]
         [HttpPost]
         [Route("DescriptionChange")]
         public async Task<IActionResult> ChangePhotoDescription([FromBody] string picture_url, [FromBody] string new_description)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
-            //ovaj deo moze da se ispita i pri vracanju usera iz cookie-a
-            if (!this.Service.UserExists("", mail))
-            {
-                return BadRequest(new { message = "Korisnik ne postoji." });
-            }
+            string mail = HttpContext.Items["User"];
 
             string picture_path = this.Service.ExtractPictureName(picture_url);
 
@@ -144,19 +124,12 @@ namespace Instakilogram.Controllers
             }
         }
 
-        //[modifikacija]
         //tagovi se salju kao lista da bi se azurirali (salje se cela nova lista tagova)
         [HttpPost]
         [Route("ChangeTags")]
         public async Task<IActionResult> ChangeTaggedUsersOnPhoto([FromBody] string picture_url, [FromBody] string new_tag_list)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
-            //ovaj deo moze da se ispita i pri vracanju usera iz cookie-a
-            if (!this.Service.UserExists("", mail))
-            {
-                return BadRequest(new { message = "Korisnik ne postoji." });
-            }
+            string mail = HttpContext.Items["User"];
 
             List<string> tags = JsonConvert.DeserializeObject<List<string>>(new_tag_list);
             if (!tags.Any())
@@ -190,18 +163,11 @@ namespace Instakilogram.Controllers
             return Ok(new { message = "Tagovi azurirani." });
         }
 
-        //[modifikacija]
         [HttpPost]
         [Route("ChangeHashtags")]
         public async Task<IActionResult> ChangePhotoHashtags([FromBody] string picture_url, [FromBody] string new_hashtag_list)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
-            //ovaj deo moze da se ispita i pri vracanju usera iz cookie-a
-            if (!this.Service.UserExists("", mail))
-            {
-                return BadRequest(new { message = "Korisnik ne postoji." });
-            }
+            string mail = HttpContext.Items["User"];
 
             List<string> tags = JsonConvert.DeserializeObject<List<string>>(new_hashtag_list);
             if (!tags.Any())
@@ -240,18 +206,12 @@ namespace Instakilogram.Controllers
             return Ok(new { message = "Hashtagovi azurirani." });
         }
 
-        //[modifikacija]
         [HttpDelete]
         [Route("DeletePhoto")]
         public async Task<IActionResult> DeletePhoto([FromBody] string picture_url)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
-            //ovaj deo moze da se ispita i pri vracanju usera iz cookie-a
-            if (!this.Service.UserExists("", mail))
-            {
-                return BadRequest(new { message = "Korisnik ne postoji." });
-            }
+            string mail = HttpContext.Items["User"];
+            
             string picture_path = this.Service.ExtractPictureName(picture_url);
 
             if (!this.Service.ImageCheck(mail, picture_path))

@@ -16,14 +16,14 @@ namespace WinScout.RequestResponse
         public string ProfilePicture { get; set; }
         public string? Description { get; set; }
 
-        public LogInResponse(string username, string name, string cookie, string profilepic = null, string description = null)
-        {
-            this.UserName = username;
-            this.Name = name;
-            this.Cookie = cookie;
-            this.ProfilePicture = profilepic;
-            this.Description = description;
-        }
+        // public LogInResponse(string username, string name, string cookie, string profilepic = null, string description = null)
+        // {
+        //     this.UserName = username;
+        //     this.Name = name;
+        //     this.Cookie = cookie;
+        //     this.ProfilePicture = profilepic;
+        //     this.Description = description;
+        // }
 
     }
 }

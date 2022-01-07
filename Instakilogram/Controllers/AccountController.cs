@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WinScout.RequestResponse;
+using Instakilogram.Authentication;
 
 namespace Instakilogram.Controllers
 {
@@ -235,48 +235,66 @@ namespace Instakilogram.Controllers
             return Ok(new { message = "Uspesno promenjena sifra." });
         }
 
+        [HttpPost]
+        [Route("LogIn")]
+        public async Task<IActionResult> SignIn([FromBody] LogInRequest request)
+        {
+            if(this.Service.UserExists("",request.Mail))
+            {
+                var query = this.Neo.Cypher
+                    .Match("(u:User)")
+                    .Where((User u) => u.Mail == new_mail);
 
-        //[HttpPost]
-        //[Route("LogIn")]
-        //public async Task<IActionResult> SignIn([FromBody] LogInZahtev zahtev)
-        //{
-        //    Korisnik korisnik = await Context.Korisnici.Where(p => p.Mail == zahtev.Mail).FirstOrDefaultAsync();
-        //    if (korisnik == null)
-        //    {
-        //        return BadRequest(new { message = "Korisnik ne postoji. Moguce da ste uneli pogresan mail." });
-        //    }
-        //    string _message = Service.ProveriPrisutpNalogu(korisnik.ID);
-        //    if (_message != null)
-        //    {
-        //        return BadRequest(new { message = _message });
-        //    }
-        //    else if (!Service.ProveriSifru(korisnik.Password, korisnik.Salt, zahtev.Password))
-        //    {
-        //        return BadRequest(new { message = "Pogresna sifra." });
-        //    }
+                User user = query.Return(u => u.As<User>())
+                    .ResultsAsync.Result.ToList().Single();
 
-        //    string token = Service.GenerisiToken(korisnik);
-        //    korisnik.Online = true;
-        //    Context.Update<Korisnik>(korisnik);
-        //    await Context.SaveChangesAsync();
-        //    LogInOdgovor odgovor = new LogInOdgovor(korisnik.ID, korisnik.Naziv, korisnik.TipKorisnika, token);
+                if(this.Service.CheckPassword(user.Password, user.Salt, request.Password))
+                {
+                    string cookie = this.Service.GenerateCookie();
+                    this.Service.StoreCookie(cookie, user.Mail);
+                    query.Set("u.online = 'true'").ExecuteWithoutResultsAsync(); //mozda 'true' treba preko WithParam()
+                    
+                    LogInResponse response = new LogInResponse
+                    {
+                        UserName = user.UserName,
+                        Name = user.Name,
+                        Description = user.Description,
+                        Cookie = cookie,
+                        ProfilePicture = this.Service.URL.ProfileImagesPath + user.ProfilePicture
+                    };
+                    //ako nece url preko service onda ubaci objekat manuelno
 
-        //    return Ok(odgovor);
-        //}
+                    return Ok(response);
+                }
+                else
+                {
+                    return BadRequest(new {message = "Pogresna sifra."});    
+                }
+            }
+            else
+            {
+                return BadRequest(new {message = "Korisnik ne postoji, pogresan mail."});
+            }
+        }
 
+        [Auth]
+        [HttpPost]
+        [Route("LogOut")]
+        public async Task<IActionResult> LogOut()
+        {
+            string mail = HttpContext.Items["User"];
 
-        //[HttpPut]
-        //[Route("LogOut")]
-        //public async Task<IActionResult> LogOut()
-        //{
-        //    Korisnik korisnik = (Korisnik)HttpContext.Items["User"];
+            //proveri da li je Set() ok napisan
+            this.Neo.Cypher
+                .Match("(u:User)")
+                .Where((User u) => u.Mail == mail)
+                .Set("u.online = 'false'")
+                .ExecuteWithoutResultsAsync();
 
-        //    korisnik.Online = false;
-        //    Context.Update<Korisnik>(korisnik);
-        //    await Context.SaveChangesAsync();
+            this.Service.DeleteCookie(HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last());
 
-        //    return Ok();
-        //}
+            return Ok();
+        }
 
     }
 }

@@ -32,30 +32,42 @@ namespace Instakilogram.Controllers
             hostingEnvironment = hostingEnv;
         }
 
+        // [HttpGet]
+        // [Route("preuzmi")]
+        // public async Task<IActionResult> Preuzmi()
+        // {
+        //     var rez = await this.Neo.Cypher
+        //         .Match("(n:User)")
+        //         .Return<User>("n").ResultsAsync;
+        //     List<User> korisnici = rez.ToList();
+        //     User korisnik = korisnici.First();
+        //     return Ok(rez);
+        // }
+
+        // [HttpPost]
+        // [Route("dodaj")]
+        // public async Task<IActionResult> Dodaj([FromBody] User u)
+        // {
+
+        //     var rez = await this.Neo.Cypher
+        //         .Create("(n:User $korisnik)")
+        //         .WithParam("korisnik", u)
+        //         .Return(u => u.As<User>()).ResultsAsync;
+        //     //.ExecuteWithoutResultsAsync();
+
+        //     return Ok();
+        // }
+
+        //nisam siguran sto se konverzije u rez tice, prepravicu ovo
         [HttpGet]
-        [Route("preuzmi")]
-        public async Task<IActionResult> Preuzmi()
+        [Route("GetProfile/{username}")]
+        public async Task<IActionResult> GetProfile(string username)
         {
-            var rez = await this.Neo.Cypher
-                .Match("(n:User)")
-                .Return<User>("n").ResultsAsync;
-            List<User> korisnici = rez.ToList();
-            User korisnik = korisnici.First();
-            return Ok(rez);
-        }
-
-        [HttpPost]
-        [Route("dodaj")]
-        public async Task<IActionResult> Dodaj([FromBody] User u)
-        {
-
-            var rez = await this.Neo.Cypher
-                .Create("(n:User $korisnik)")
-                .WithParam("korisnik", u)
-                .Return(u => u.As<User>()).ResultsAsync;
-            //.ExecuteWithoutResultsAsync();
-
-            return Ok();
+            var rez = this.Neo.Cypher
+                .Match("(u:User)-[:OWNS]->(p:Photo)")
+                .Where((User u)=> u.userName == username)
+                .Return((User u, Photo p) => new{ user = u.As<User>(), photos = p.CollectAs<Photo>() } )
+                .ResultsAsync.Result.Single();
         }
 
         [HttpGet]

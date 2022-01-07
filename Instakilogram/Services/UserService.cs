@@ -35,7 +35,7 @@ namespace Instakilogram.Service
         int PinGenerator();
         void SavePin(string mail, int PIN);
         bool CheckPin(string mail, int new_pin);
-        bool CheckPassword(string sifra, string salt, string zahtev);
+        bool CheckPassword(string hash_string, string salt_string, string password_string);
         void PasswordHash(out string hash_string, out string salt_string, string password_string);
         void SendMail(User user, MailType type);
         bool UserExists(string new_user_name, string new_mail = "");
@@ -45,6 +45,10 @@ namespace Instakilogram.Service
         Hashtag GetOrCreateHashtag(string title);
         string ExtractPictureName(string url);
         void UpdateHashtags(string picture_path);
+        string GenerateCookie(int length = 25);
+        void StoreCookie(string key, string mail);
+        string? CheckCookie(string key);
+        void DeleteCookie(string key);
     }
 
     public class UserService : IUserService
@@ -112,27 +116,11 @@ namespace Instakilogram.Service
                 .Return(p => p.As<Photo>())
                 .ResultsAsync.Result.ToList().Single();
             return p == null ? false : true;
-        }
-
-        //mozda moze da se iskoristi za cookie
-
-        //public string GenerisiToken(Korisnik korisnik)
-        //{
-        //    JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-        //    byte[] key = Encoding.ASCII.GetBytes(_appSettings.Secret);
-        //    SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
-        //    {
-        //        Subject = new ClaimsIdentity(new[] { new Claim("id", korisnik.ID.ToString()) }),
-        //        Expires = DateTime.UtcNow.AddDays(1),
-        //        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        //    };
-        //    SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
-        //    return tokenHandler.WriteToken(token);
-        //}
-        public bool CheckPassword(string hash, string salt_string, string password_string)
+        }        
+        public bool CheckPassword(string hash_string, string salt_string, string password_string)
         {
             byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            byte[] valid_hash = Encoding.UTF8.GetBytes(hash);
+            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
             HMACSHA512 hashObj = new HMACSHA512(salt);
             byte[] password = System.Text.Encoding.UTF8.GetBytes(password_string);
             byte[] computed_hash = hashObj.ComputeHash(password);
@@ -364,6 +352,40 @@ namespace Instakilogram.Service
                     .WithParam("prop", hTag)
                     .ExecuteWithoutResultsAsync();
                 return hTag;
+            }
+        }
+        public string GenerateCookie(int length = 25)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            Random random = new Random(); //probaj sa RandomNumberGenerator klasom
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+        public void StoreCookie(string key, string mail)
+        {
+            var db = this.Redis.GetDatabase();
+            db.StringSetAsync(key, mail);
+        }
+        public string? CheckCookie(string key)
+        {
+            var db = this.Redis.GetDatabase();
+            if(db.KeyExists(key))
+            {
+                return db.StringGetAsync(key).Result;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public void DeleteCookie(string key)
+        {
+            var db = this.Redis.GetDatabase();
+            if(db.KeyExists(key))
+            {
+                //obrisati key
+                db.KeyDeleteAsync(key);
             }
         }
     }

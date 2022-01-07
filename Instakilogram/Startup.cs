@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Instakilogram.Config;
 using Instakilogram.Service;
+using Instakilogram.Authentication;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
@@ -76,6 +77,8 @@ namespace Instakilogram
             }
 
             app.UseRouting();
+
+            app.UseMiddleware<CookieMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {
