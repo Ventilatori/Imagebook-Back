@@ -31,9 +31,8 @@ namespace Instakilogram.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<IActionResult> SignUp([FromForm] string user_object, [FromForm] IFormFile? Picture)
+        public async Task<IActionResult> SignUp([FromForm] SignUpRequest request )
         {
-            SignUpRequest request = JsonConvert.DeserializeObject<SignUpRequest>(user_object);
 
             if (this.Service.UserExists(request.UserName, request.Mail))
             {
@@ -56,15 +55,15 @@ namespace Instakilogram.Controllers
                 PIN = null
             };
 
-            if (Picture==null)
+            if (request.Picture==null)
             {
-                string picture = this.Service.AddImage(Picture);
+                string picture = this.Service.AddImage(request.Picture);
                 newUser.ProfilePicture += picture;
                 this.Service.TmpStoreAccount(newUser);
             }
             else
             {
-                this.Service.TmpStoreAccount(newUser, Picture);
+                this.Service.TmpStoreAccount(newUser, request.Picture);
             }
 
             return Ok(new { message = "Poslat vam je mail za validaciju."});

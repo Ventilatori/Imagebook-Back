@@ -22,5 +22,7 @@ namespace Instakilogram.RequestResponse
 
         public string? Description { get; set; }
 
+        public IFormFile? Picture { get; set; }
+
     }
 }

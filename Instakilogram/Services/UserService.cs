@@ -119,22 +119,25 @@ namespace Instakilogram.Service
             return p == null ? false : true;
         }        
         public bool CheckPassword(string hash_string, string salt_string, string password_string)
-        {
-            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            HMACSHA512 hashObj = new HMACSHA512(salt);
-            byte[] password = System.Text.Encoding.UTF8.GetBytes(password_string);
-            byte[] computed_hash = hashObj.ComputeHash(password);
+        { //iskljcuimo hashiranje privremeno
 
-            int len = computed_hash.Length;
-            for (int i = 0; i < len; i++)
-            {
-                if (valid_hash[i] != computed_hash[i])
-                {
-                    return false;
-                }
-            }
-            return true;
+            if(hash_string == password_string) return true;
+            return false;
+            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            //HMACSHA512 hashObj = new HMACSHA512(salt);
+            //byte[] password = System.Text.Encoding.UTF8.GetBytes(password_string);
+            //byte[] computed_hash = hashObj.ComputeHash(password);
+
+            //int len = computed_hash.Length;
+            //for (int i = 0; i < len; i++)
+            //{
+            //    if (valid_hash[i] != computed_hash[i])
+            //    {
+            //        return false;
+            //    }
+            //}
+            //return true;
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
         {
@@ -210,9 +213,9 @@ namespace Instakilogram.Service
                 .Match("(u:User)")
                 .Where((User u) => u.UserName == new_user_name || u.Mail == new_mail)
                 .Return(u => u.As<User>())
-                .ResultsAsync;
-            User result = query.Result.ToList().Single();
-            if(result != null)
+                .ResultsAsync.Result;
+            //User result = query.ToList().Single();
+            if(query.Any())
             {
                 return true;
             }
@@ -256,8 +259,8 @@ namespace Instakilogram.Service
                 string img_key = user.UserName + "Profile";
                 if (String.Equals(user.ProfilePicture,"") && db.KeyExists(img_key))
                 {
-                    var img_string = db.StringGetAsync(img_key).Result;
-                    IFormFile Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
+                    var img_string = db.StringGetAsync(img_key).Result.ToString();
+                    var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
                     string picture = this.AddImage(Picture, IUserService.ImageType.Profile);
                     user.ProfilePicture = picture;
                     db.KeyDelete(img_key);

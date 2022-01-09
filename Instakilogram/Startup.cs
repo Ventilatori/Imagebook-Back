@@ -37,6 +37,14 @@ namespace Instakilogram
                 configuration.RootPath = "ClientApp/dist";
             });
 
+            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            }));
+
+
             services.Configure<URLs>(Configuration.GetSection("URLs"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
             //services.Configure<Neo4jConfig>(Configuration.GetSection("NeO4jConnectionSettings"));
@@ -77,6 +85,7 @@ namespace Instakilogram
             }
 
             app.UseRouting();
+            app.UseCors();
 
             app.UseMiddleware<CookieMiddleware>();
 
