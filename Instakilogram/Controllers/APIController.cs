@@ -59,16 +59,16 @@ namespace Instakilogram.Controllers
         // }
 
         //nisam siguran sto se konverzije u rez tice, prepravicu ovo
-        [HttpGet]
-        [Route("GetProfile/{username}")]
-        public async Task<IActionResult> GetProfile(string username)
-        {
-            var rez = this.Neo.Cypher
-                .Match("(u:User)-[:OWNS]->(p:Photo)")
-                .Where((User u)=> u.userName == username)
-                .Return((User u, Photo p) => new{ user = u.As<User>(), photos = p.CollectAs<Photo>() } )
-                .ResultsAsync.Result.Single();
-        }
+        //[HttpGet]
+        //[Route("GetProfile/{username}")]
+        //public async Task<IActionResult> GetProfile(string username)
+        //{
+        //    var rez = this.Neo.Cypher
+        //        .Match("(u:User)-[:OWNS]->(p:Photo)")
+        //        .Where((User u)=> u.userName == username)
+        //        .Return((User u, Photo p) => new{ user = u.As<User>(), photos = p.CollectAs<Photo>() } )
+        //        .ResultsAsync.Result.Single();
+        //}
 
         [HttpGet]
         [Route("GetFeed/{callerUsername}")] //without time limit 24h

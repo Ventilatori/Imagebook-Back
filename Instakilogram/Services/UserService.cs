@@ -44,7 +44,8 @@ namespace Instakilogram.Service
         User GetUser(string username);
         Hashtag GetOrCreateHashtag(string title);
         string ExtractPictureName(string url);
-        void UpdateHashtags(string picture_path);
+        List<string> CommonListElements(string picture_path, List<string> new_hashtags);
+        void UpdateHashtags(string picture_path, List<string> exceptions=null);
         string GenerateCookie(int length = 25);
         void StoreCookie(string key, string mail);
         string? CheckCookie(string key);
@@ -268,7 +269,7 @@ namespace Instakilogram.Service
                     .ExecuteWithoutResultsAsync();
 
                 db.KeyDelete(key);
-                link = this.URL.VerifyURL;
+                link = this.URL.LogInPage;
             }
             return link;
         }
@@ -279,16 +280,51 @@ namespace Instakilogram.Service
             return disassembled_url[5];
         }
 
-        public void UpdateHashtags(string picture_path)
+        public List<string> CommonListElements(string picture_path, List<string> new_hashtags)
         {
+            List<string> exceptions = new List<string>();
 
-            List<Hashtag> hash_list = this.Neo.Cypher
+            List<Hashtag> hashtags = this.Neo.Cypher
+                .Match("(h:Hashtag)-[:HAVE]->(p:Photo {path: $photopath})")
+                .WithParam("photopath", picture_path)
+                .Return(h => h.CollectAs<Hashtag>())
+                .ResultsAsync.Result.ToList().Single().ToList();
+
+            foreach(Hashtag tmp_tag in hashtags)
+            {
+                if(new_hashtags.Contains(tmp_tag.Title))
+                {
+                    exceptions.Append(tmp_tag.Title);
+                }
+            }
+
+            return exceptions;
+        }
+        //sta ako user prati hashtag koji je obrisan prilikom azuriranja slike
+        public void UpdateHashtags(string picture_path, List<string> exceptions=null)
+        {
+            List<Hashtag> hash_list;
+            //bira samo hashtagove koji nisu u listi exceptions
+            if(exceptions!=null)
+            {
+                hash_list = this.Neo.Cypher
+                .Match("(h:Hashtag)-[r:HAVE]->(p:Photo {path: $photopath})")
+                .WithParam("photopath", picture_path)
+                .Where((Hashtag h) => !exceptions.Contains(h.Title))
+                .Delete("r")
+                .Return(h => h.CollectAs<Hashtag>())
+                .ResultsAsync.Result.ToList().Single().ToList();
+            }
+            else
+            {
+                hash_list = this.Neo.Cypher
                 .Match("(h:Hashtag)-[r:HAVE]->(p:Photo {path: $photopath})")
                 .WithParam("photopath", picture_path)
                 .Delete("r")
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync.Result.ToList().Single().ToList();
-
+            }
+            
             foreach (Hashtag hashtag in hash_list)
             {
                 //koriscenjem cypher f-je exists(), proveriti da li relacija uopste postoji i direktno obrisati hashtag sa svim njegovim granama

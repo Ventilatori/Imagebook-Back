@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using Instakilogram.Authentication;
 
 namespace Instakilogram.Controllers
@@ -19,11 +20,13 @@ namespace Instakilogram.Controllers
     {
         private IUserService Service;
         private IGraphClient Neo;
+        private URLs URL;
 
-        public AccountController(IUserService service, IGraphClient gc)
+        public AccountController(IUserService service, IGraphClient gc, IOptions<URLs> url)
         {
             this.Service = service;
             this.Neo = gc;
+            this.URL = url.Value;
         }
 
         [HttpPost]
@@ -80,17 +83,12 @@ namespace Instakilogram.Controllers
             return BadRequest(new { message = "Doslo je do greske."});
         }
 
-        //[modifikacija]
+        [Auth]
         [HttpPost]
         [Route("ChangeAccountInfo")]
         public async Task<IActionResult> ChangeAccountInfo([FromForm] string? user_object, [FromForm] IFormFile? Picture)
         {
-            //===cookie===
-            //string mail = this.Service.ExtractUserFromCookie();
-            //da li u user_object (ChangeAccountRequest) da se pakuje cookie (ili je u hederu paketa)
-
-            //zbog toga sto nema cookie pa ne znamo koji je nalog u pitanju, zbog debug-a ubaci cu hardkodirane podatke
-            string mail = "andrija.djordjevic.97@gmail.com";
+            string mail = (string)HttpContext.Items["User"];
 
             Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
                     .Match("(n:User)")
@@ -145,14 +143,13 @@ namespace Instakilogram.Controllers
 
         }
 
-        //[modifikacija]
         //ovo je samo ako zna password i zeli da ga promeni
+        [Auth]
         [HttpPost]
         [Route("PasswordReset")]
         public async Task<IActionResult> ResetPassword([FromBody] PasswordChangeRequest request)
         {
-            //cookie
-            string mail = "andrija.djordjevic.97@gmail.com";
+            string mail = (string)HttpContext.Items["User"];
 
             Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
                     .Match("(n:User)")
@@ -187,7 +184,6 @@ namespace Instakilogram.Controllers
         [Route("PasswordRecoverRequest")]
         public async Task<IActionResult> PasswordRecoverRequest([FromBody] string mail)
         {
-
             if(!this.Service.UserExists("", mail))
             {
                 return BadRequest(new { message = "Pogresan mejl." });
@@ -243,7 +239,7 @@ namespace Instakilogram.Controllers
             {
                 var query = this.Neo.Cypher
                     .Match("(u:User)")
-                    .Where((User u) => u.Mail == new_mail);
+                    .Where((User u) => u.Mail == request.Mail);
 
                 User user = query.Return(u => u.As<User>())
                     .ResultsAsync.Result.ToList().Single();
@@ -260,7 +256,7 @@ namespace Instakilogram.Controllers
                         Name = user.Name,
                         Description = user.Description,
                         Cookie = cookie,
-                        ProfilePicture = this.Service.URL.ProfileImagesPath + user.ProfilePicture
+                        ProfilePicture = this.URL.ProfileImagesPath + user.ProfilePicture
                     };
                     //ako nece url preko service onda ubaci objekat manuelno
 
@@ -282,7 +278,7 @@ namespace Instakilogram.Controllers
         [Route("LogOut")]
         public async Task<IActionResult> LogOut()
         {
-            string mail = HttpContext.Items["User"];
+            string mail = (string)HttpContext.Items["User"];
 
             //proveri da li je Set() ok napisan
             this.Neo.Cypher

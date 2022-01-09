@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Instakilogram.Authentication;
+using Instakilogram.RequestResponse;
 
 namespace Instakilogram.Controllers
 {
@@ -31,7 +32,7 @@ namespace Instakilogram.Controllers
         [Route("AddPhoto")]
         public async Task<IActionResult> AddPhoto([FromForm] string? image_object, [FromForm] IFormFile Picture)
         {
-            string mail = HttpContext.Items["User"];
+            string mail = (string)HttpContext.Items["User"];
 
             if (Picture != null)
             {
@@ -97,120 +98,73 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("DescriptionChange")]
-        public async Task<IActionResult> ChangePhotoDescription([FromBody] string picture_url, [FromBody] string new_description)
+        [Route("ChangePhoto")]
+        public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
         {
-            string mail = HttpContext.Items["User"];
-
-            string picture_path = this.Service.ExtractPictureName(picture_url);
-
-            //ovo mozda izazove gresku ako nema slike (napisati koristeci prvo proveru da li slika postoji - Service.CheckImage - pa tek onda Set())
-            Photo p = this.Neo.Cypher
-                .Match("(u:User {mail: $email})-[:OWNS]->(p:Photo {path: $photopath})")
-                .WithParam("email", mail)
-                .WithParam("photopath", picture_path)
-                .Set("p.description: $new")
-                .WithParam("new", new_description)
-                .Return(p => p.As<Photo>())
-                .ResultsAsync.Result.ToList().Single();
-
-            if (p == null)
-            {
-                return BadRequest(new { message = "Slika ne postoji." });
-            }
-            else
-            {
-                return Ok(new { message = "Uspesno promenjen opis slike." });
-            }
-        }
-
-        //tagovi se salju kao lista da bi se azurirali (salje se cela nova lista tagova)
-        [HttpPost]
-        [Route("ChangeTags")]
-        public async Task<IActionResult> ChangeTaggedUsersOnPhoto([FromBody] string picture_url, [FromBody] string new_tag_list)
-        {
-            string mail = HttpContext.Items["User"];
-
-            List<string> tags = JsonConvert.DeserializeObject<List<string>>(new_tag_list);
-            if (!tags.Any())
-            {
-                return BadRequest(new { message = "Lista tagova prazna." });
-            }
-
-            string picture_path = this.Service.ExtractPictureName(picture_url);
+            string mail = (string)HttpContext.Items["User"];
+            
+            string picture_path = this.Service.ExtractPictureName(request.PictureURL);
 
             if (!this.Service.ImageCheck(mail, picture_path))
             {
                 return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
             }
 
-            await this.Neo.Cypher
-                .Match("(p:Photo {path: $photopath})-[r:TAGS]->(u:User)")
-                .WithParam("photopath", picture_path)
-                .Delete("r")
-                .ExecuteWithoutResultsAsync();
-
-            foreach(string tag in tags)
+            if(!String.IsNullOrEmpty(request.Description))
             {
                 await this.Neo.Cypher
-                    .Match("(p:Photo {path: $photopath}),(u:User {userName: $name})")
+                    .Match("(p:Photo {path: $photopath})")
                     .WithParam("photopath", picture_path)
-                    .WithParam("name", tag)
-                    .Create("(p)-[r:TAGS]->(u)")
+                    .Set("p.description: $new")
+                    .WithParam("new", request.Description)
                     .ExecuteWithoutResultsAsync();
             }
-
-            return Ok(new { message = "Tagovi azurirani." });
-        }
-
-        [HttpPost]
-        [Route("ChangeHashtags")]
-        public async Task<IActionResult> ChangePhotoHashtags([FromBody] string picture_url, [FromBody] string new_hashtag_list)
-        {
-            string mail = HttpContext.Items["User"];
-
-            List<string> tags = JsonConvert.DeserializeObject<List<string>>(new_hashtag_list);
-            if (!tags.Any())
+            if(request.Tags.Any())
             {
-                return BadRequest(new { message = "Lista hashtagova prazna." });
-            }
-
-            string picture_path = this.Service.ExtractPictureName(picture_url);
-
-            if (!this.Service.ImageCheck(mail, picture_path))
-            {
-                return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
-            }
-
-            //ovo gore sve moze da se ubaci u 1 Service f-ju koja ce da vraca string (message) koja ako je prazna sve je ok, ako nije vraca se BadRequest
-
-            //sve relacije izmedju slika i hashtagova se obrisu
-            //svi ti hashtagovi se stave u listu da bi se mogli obraditi (obrisati) ukoliko nema vise slika na njima
-            //i da li je uklonjena profilna slika sa hashtaga (zbog azuriranja profilne hashtaga) (optional)
-
-            this.Service.UpdateHashtags(picture_path);
-
-            //obnove se sve veze sa hashtagovima u bazi na osnovu prosledjene liste
-
-            foreach(string title in tags)
-            {
-                Hashtag htag = this.Service.GetOrCreateHashtag(title);
                 await this.Neo.Cypher
-                    .Match("(p:Photo {path: $path_val}), (h:Hashtag {title: $h_title})")
-                    .WithParam("path_val", picture_path)
-                    .WithParam("h_title", htag.Title)
-                    .Create("(h)-[r:HAVE]->(p)")
+                    .Match("(p:Photo {path: $photopath})-[r:TAGS]->(u:User)")
+                    .WithParam("photopath", picture_path)
+                    .Delete("r")
                     .ExecuteWithoutResultsAsync();
+
+                foreach(string tag in request.Tags)
+                {
+                    await this.Neo.Cypher
+                        .Match("(p:Photo {path: $photopath}),(u:User {userName: $name})")
+                        .WithParam("photopath", picture_path)
+                        .WithParam("name", tag)
+                        .Create("(p)-[r:TAGS]->(u)")
+                        .ExecuteWithoutResultsAsync();
+                }
+            }
+            if(request.Hashtags.Any())
+            {    
+                List<string> exceptions = this.Service.CommonListElements(picture_path, request.Hashtags);
+                this.Service.UpdateHashtags(picture_path, exceptions);
+
+                foreach(string title in request.Hashtags)
+                {
+                    if(!exceptions.Contains(title))
+                    {
+                        Hashtag htag = this.Service.GetOrCreateHashtag(title);
+                        await this.Neo.Cypher
+                            .Match("(p:Photo {path: $path_val}), (h:Hashtag {title: $h_title})")
+                            .WithParam("path_val", picture_path)
+                            .WithParam("h_title", htag.Title)
+                            .Create("(h)-[r:HAVE]->(p)")
+                            .ExecuteWithoutResultsAsync();
+                    }
+                }
             }
 
-            return Ok(new { message = "Hashtagovi azurirani." });
+            return Ok(new { message = "Uspesno promenjena slika." });            
         }
 
         [HttpDelete]
         [Route("DeletePhoto")]
         public async Task<IActionResult> DeletePhoto([FromBody] string picture_url)
         {
-            string mail = HttpContext.Items["User"];
+            string mail = (string)HttpContext.Items["User"];
             
             string picture_path = this.Service.ExtractPictureName(picture_url);
 

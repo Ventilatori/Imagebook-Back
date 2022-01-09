@@ -17,8 +17,7 @@ namespace Instakilogram.Authentication
         
         public void OnAuthorization(AuthorizationFilterContext context)
         {
-            //je l ovo string??
-            string mail = context.HttpContext.Items["User"];
+            string mail = (string)context.HttpContext.Items["User"];
             if (mail == null)
             {
                 context.Result = new JsonResult(new { message = "Neovlascen" }) { StatusCode = StatusCodes.Status401Unauthorized };
