@@ -48,7 +48,7 @@ namespace Instakilogram.Controllers
                     .Where((User n) => n.Mail == mail)
                     .Create("(p:Photo $prop)")
                     .WithParam("prop", photo)
-                    .Create("(u)-[r:OWNS]->(p)")
+                    .Create("(u)-[r:UPLOADED]->(p)")
                     .ExecuteWithoutResultsAsync();
 
                 PhotoUpload request = JsonConvert.DeserializeObject<PhotoUpload>(image_object);

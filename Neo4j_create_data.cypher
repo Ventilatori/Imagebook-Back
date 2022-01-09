@@ -22,7 +22,7 @@ CREATE
 
 (drvo)-[:TAGS]->(johnnyz),
 
-(nature)-[:HASH_TAGS]->(drvo),
-(sky)-[:HASH_TAGS]->(oblak);
+(nature)-[:HAVE]->(drvo),
+(sky)-[:HAVE]->(oblak);
 
 

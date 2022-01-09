@@ -111,7 +111,7 @@ namespace Instakilogram.Service
         public bool ImageCheck(string mail, string picture_path)
         {
             Photo p = this.Neo.Cypher
-                .Match("(u:User {mail: $email})-[:OWNS]->(p:Photo {path: $photopath})")
+                .Match("(u:User {mail: $email})-[:UPLOADED]->(p:Photo {path: $photopath})")
                 .WithParam("email", mail)
                 .WithParam("photopath", picture_path)
                 .Return(p => p.As<Photo>())

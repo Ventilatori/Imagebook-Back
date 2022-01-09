@@ -64,7 +64,7 @@ namespace Instakilogram.Controllers
         //public async Task<IActionResult> GetProfile(string username)
         //{
         //    var rez = this.Neo.Cypher
-        //        .Match("(u:User)-[:OWNS]->(p:Photo)")
+        //        .Match("(u:User)-[:UPLOADED]->(p:Photo)")
         //        .Where((User u)=> u.userName == username)
         //        .Return((User u, Photo p) => new{ user = u.As<User>(), photos = p.CollectAs<Photo>() } )
         //        .ResultsAsync.Result.Single();
