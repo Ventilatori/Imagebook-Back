@@ -27,7 +27,6 @@ namespace Instakilogram.Controllers
         private IUserService Service;
 
 
-
         //private IUserService Service;
         public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service)
         {
@@ -151,7 +150,6 @@ namespace Instakilogram.Controllers
             return Ok();
         }
 
-
         [HttpPost]
         [Route("UploadProfilePic/{callerUsername}")]
         public async Task<IActionResult> UploadProfilePic(string callerUsername, IFormFile file)
@@ -193,7 +191,6 @@ namespace Instakilogram.Controllers
         //        .ExecuteWithoutResultsAsync();
         //    return Ok();
         //}
-
 
     }
 }

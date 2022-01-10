@@ -30,7 +30,6 @@ namespace Instakilogram.Authentication
             await _next(context);
         }
 
-   
         private async Task AttachUser(HttpContext context, IUserService service, string cookie)
         {
             try

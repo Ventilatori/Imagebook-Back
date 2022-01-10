@@ -180,7 +180,6 @@ namespace Instakilogram.Controllers
                 return BadRequest(new { message = "Pogresna sifra." });
             }
 
-
             string hash, salt;
             this.Service.PasswordHash(out hash, out salt, request.New);
 

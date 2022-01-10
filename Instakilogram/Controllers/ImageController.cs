@@ -79,7 +79,6 @@ namespace Instakilogram.Controllers
                 if (request != null)
                 {
 
-
                     if (!String.IsNullOrEmpty(request.Description))
                     {
                         var slicka = await this.Neo.Cypher
@@ -110,11 +109,9 @@ namespace Instakilogram.Controllers
                             //Hashtag tmpTag = this.Service.GetOrCreateHashtag(hTag);
 
 
-
                             //query.Merge("(hTag:Hashtag {title: $new_title})")
                             //    .WithParam("new_title", hTag)
                             //    .Create("(hTag)-[h:HAVE]->(p)");
-
 
                             //proveriti da li je adekvatno napisan merge
                         }
@@ -197,7 +194,6 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> DeletePhoto([FromBody] string picture_url)
         {
             string mail = (string)HttpContext.Items["User"];
-
 
             
             string picture_path = this.Service.ExtractPictureName(picture_url);

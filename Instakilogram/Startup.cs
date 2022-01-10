@@ -44,7 +44,6 @@ namespace Instakilogram
                        .AllowAnyHeader();
             }));
 
-
             services.Configure<URLs>(Configuration.GetSection("URLs"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
             //services.Configure<Neo4jConfig>(Configuration.GetSection("NeO4jConnectionSettings"));

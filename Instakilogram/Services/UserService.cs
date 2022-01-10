@@ -257,7 +257,6 @@ namespace Instakilogram.Service
                         pic.FileName = Picture.FileName;
                         pic.Base64Content = s;
 
-
 ;                      
                         db.StringSetAsync(user.UserName + "Profile", JsonConvert.SerializeObject(pic), t);
                         
