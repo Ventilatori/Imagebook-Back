@@ -228,24 +228,25 @@ namespace Instakilogram.Controllers
         [HttpPost]
         [Route("LikePhoto/{callerUsername}/{photofilename}")]
         public async Task<IActionResult> LikePhoto(string callerUsername, string photofilename)
-           
+
         {
-            //create relationship
+            //check if like exists
+            var query = await this.Neo.Cypher
+             .Match("(a:User)-[r:LIKES]->(b:Photo)")
+             .Where("a.UserName = $userA AND b.Path = $photoName")
+             .WithParams(new { userA = callerUsername, photoName = photofilename })
+              .Return<User>("a").ResultsAsync;
+            if (query.Count() != 0)
+                return Ok("vec ste lajkovali!");
+            //create like
             await this.Neo.Cypher
                 .Match("(a:User),(b:Photo)")
                 .Where("a.UserName = $userA AND b.Path = $photoName")
                 .WithParams(new { userA = callerUsername, photoName = photofilename })
                 .Merge("(a)-[r:LIKES]->(b)")
+                 .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
                 .ExecuteWithoutResultsAsync();
-            //increase likes
-            await this.Neo.Cypher
-               .Match("(a:User)-[r:LIKES]->(b:Photo)")
-               .Where("a.UserName = $userA AND b.Path = $photoName")
-               .WithParams(new { userA = callerUsername, photoName = photofilename })
-               .Return().ResultsAsync;
-               .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
-               
-               .ExecuteWithoutResultsAsync();
+       
 
             return Ok();
         }

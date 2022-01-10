@@ -14,6 +14,8 @@ using Instakilogram.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using Microsoft.AspNetCore.Http;
+using System.Text.RegularExpressions;
+using Instakilogram.RequestResponse;
 
 namespace Instakilogram.Controllers
 {
@@ -23,7 +25,7 @@ namespace Instakilogram.Controllers
     {
         private IGraphClient Neo;
         private readonly IDriver _driver;
-        public  IHostingEnvironment hostingEnvironment;
+        public IHostingEnvironment hostingEnvironment;
         private IUserService Service;
 
 
@@ -85,21 +87,22 @@ namespace Instakilogram.Controllers
             var photos = new List<Photo>();
             foreach (User u in usersFollowed)
             {
-               
+
                 DateTime now = DateTime.Now;
                 var phList = await this.Neo.Cypher
                     .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
                     .WithParam("nameParam", u.UserName)
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
-                    if(Service.IsFromLast24h(pp.TimePosted))
+                    if (Service.IsFromLast24h(pp.TimePosted))
                         photos.Add(pp);
             }
             return Ok(photos);
         }
 
+
         [HttpPost]
-        [Route("FollowUser/{callerUsername}/{usernameToFollow}")] 
+        [Route("FollowUser/{callerUsername}/{usernameToFollow}")]
         public async Task<IActionResult> FollowUser(string callerUsername, string usernameToFollow)
         {
             await this.Neo.Cypher
@@ -112,7 +115,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpDelete]
-        [Route("UnfollowUser/{callerUsername}/{usernameToUnfollow}")] 
+        [Route("UnfollowUser/{callerUsername}/{usernameToUnfollow}")]
         public async Task<IActionResult> UnfollowUser(string callerUsername, string usernameToUnfollow)
         {
             await this.Neo.Cypher
@@ -125,7 +128,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("FollowHashtag/{callerUsername}/{hashtagToFollow}")] 
+        [Route("FollowHashtag/{callerUsername}/{hashtagToFollow}")]
         public async Task<IActionResult> FollowHashtag(string callerUsername, string hashtagToFollow)
         {
             await this.Neo.Cypher
@@ -138,7 +141,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpDelete]
-        [Route("UnfollowHashtag/{callerUsername}/{hashtagToUnfollow}")] 
+        [Route("UnfollowHashtag/{callerUsername}/{hashtagToUnfollow}")]
         public async Task<IActionResult> Unfollow(string callerUsername, string hashtagToUnfollow)
         {
             await this.Neo.Cypher
@@ -158,7 +161,7 @@ namespace Instakilogram.Controllers
             {
                 return Ok("bad image");
             }
-          
+
             var extension = "." + file.FileName.Split('.')[file.FileName.Split('.').Length - 1];
             string fileName = DateTime.Now.Ticks + extension; //Create a new Name for the file due to security reasons.
 
@@ -179,18 +182,78 @@ namespace Instakilogram.Controllers
 
             return Ok();
         }
-        //[HttpPost]
-        //[Route("LikePhoto/{callerUsername}/{photoID}")]
-        //public async Task<IActionResult> LikePhoto(string callerUsername, string photoID)
-        //{
-        //    await this.Neo.Cypher
-        //        .Match("(a:User),(b:Hashtag)")
-        //        .Where("a.UserName = $userA AND b.Title = $hashtagB")
-        //        .WithParams(new { userA = callerUsername, hashtagB = hashtagToFollow })
-        //        .Create("(a)-[r:FOLLOWS]->(b)")
-        //        .ExecuteWithoutResultsAsync();
-        //    return Ok();
-        //}
 
+        [HttpGet]
+        [Route("Search/{username}")]
+        public async Task<IActionResult> Search(string username)
+        {
+            Regex rgx = new Regex("" + username + ".*");
+
+            var matchingUsers = await this.Neo.Cypher
+               .Match("(a:User)")
+               .Where((User a) => a.UserName.Contains(username))
+               .Return<User>("a").ResultsAsync;
+            return Ok(matchingUsers);
+        }
+
+        [HttpGet]
+        [Route("GetRecommendedUsers/{callerUsername}")]
+        public async Task<IActionResult> GetRecommendedUsers(string callerUsername)
+        {
+            int minimumConnectedPeople = 2;
+
+            Dictionary<User, int> peopleToRecommend = new Dictionary<User, int>();
+
+            var myFriendList = await this.Neo.Cypher
+              .Match("(a:User)-[:FOLLOWS]->(b:User)")
+              .Where((User a) => a.UserName == callerUsername)
+              .Return<User>("b").ResultsAsync;
+
+            foreach (User friend in myFriendList)
+            {
+                var friend_friendList = await this.Neo.Cypher
+                    .Match("(a:User)-[:FOLLOWS]->(b:User)")
+                    .Where((User a) => a.UserName == friend.UserName)
+                    .Return<User>("b").ResultsAsync;
+
+                foreach (User friendOfFriend in friend_friendList)
+                {
+                    if (!myFriendList.Contains(friendOfFriend))
+                    {
+                        peopleToRecommend[friendOfFriend]++;
+                    }
+                }
+            }
+
+            var matches = peopleToRecommend.Where(kvp => kvp.Value > minimumConnectedPeople);
+
+
+
+
+
+            return Ok(matches);
+        }
+
+        [HttpGet]
+        [Route("GetUser/{userName}")]
+        public async Task<IActionResult> GetUser(string userName)
+        {
+            var user = await this.Neo.Cypher
+                .Match("(a:User)")
+                .Where((User a) => a.UserName == userName)
+                .Return<User>("a").ResultsAsync;
+
+            var uploadedPhotos = await this.Neo.Cypher
+               .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
+               .WithParam("nameParam", userName)
+               .Return<Photo>("p").ResultsAsync;
+
+            var taggedOnPhotos = await this.Neo.Cypher
+                .Match("(p:Photo)-[:TAGS]->(a:User{UserName:$nameParam})")
+                .WithParam("nameParam", userName)
+                .Return<Photo>("p").ResultsAsync;
+
+            return Ok(new GetUserResponse(user, uploadedPhotos, taggedOnPhotos));
+        }
     }
 }
