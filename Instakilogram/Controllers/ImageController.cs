@@ -224,5 +224,44 @@ namespace Instakilogram.Controllers
 
         }
 
+        //TODO FIX: Photo numberOfLikes has no limit per single caller
+        [HttpPost]
+        [Route("LikePhoto/{callerUsername}/{photofilename}")]
+        public async Task<IActionResult> LikePhoto(string callerUsername, string photofilename)
+           
+        {
+            //create relationship
+            await this.Neo.Cypher
+                .Match("(a:User),(b:Photo)")
+                .Where("a.UserName = $userA AND b.Path = $photoName")
+                .WithParams(new { userA = callerUsername, photoName = photofilename })
+                .Merge("(a)-[r:LIKES]->(b)")
+                .ExecuteWithoutResultsAsync();
+            //increase likes
+            await this.Neo.Cypher
+               .Match("(a:User)-[r:LIKES]->(b:Photo)")
+               .Where("a.UserName = $userA AND b.Path = $photoName")
+               .WithParams(new { userA = callerUsername, photoName = photofilename })
+               .Return().ResultsAsync;
+               .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
+               
+               .ExecuteWithoutResultsAsync();
+
+            return Ok();
+        }
+
+        [HttpDelete]
+        [Route("UnlikePhoto/{callerUsername}/{photofilename}")]
+        public async Task<IActionResult> UnlikePhoto(string callerUsername, string photofilename)
+        {
+            await this.Neo.Cypher
+                .Match("(a:User)-[r:LIKES]->(b:Photo)")
+                .Where("a.UserName = $userA AND b.Path = $photoName")
+                .WithParams(new { userA = callerUsername, photoName = photofilename })
+                .Set("b.NumberOfLikes = b.NumberOfLikes - 1")
+                .Delete("r") 
+                .ExecuteWithoutResultsAsync();
+            return Ok();
+        }
     }
 }
