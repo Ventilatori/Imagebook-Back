@@ -75,8 +75,8 @@ namespace Instakilogram.Controllers
         //}
 
         [HttpGet]
-        [Route("GetFeed/{callerUsername}")] //without time limit 24h
-        public async Task<IActionResult> GetFeed(string callerUsername)
+        [Route("GetFeed24h/{callerUsername}")] //
+        public async Task<IActionResult> GetFeed24h(string callerUsername)
         {
             var usersFollowed = await this.Neo.Cypher
                 .Match("(a:User)-[:FOLLOWS]->(b:User)")
@@ -86,13 +86,15 @@ namespace Instakilogram.Controllers
             var photos = new List<Photo>();
             foreach (User u in usersFollowed)
             {
+               
+                DateTime now = DateTime.Now;
                 var phList = await this.Neo.Cypher
-                    .Match("(a:User{UserName:{nameParam})-[:UPLOADED]->(p:Photo)")
-                    //.WithParams("nameParam", u.UserName)
-                    //.Where((Photo p) => Service.IsFromLast24h(p.TimePosted))
+                    .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
+                    .WithParam("nameParam", u.UserName)
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
-                    photos.Add(pp);
+                    if(Service.IsFromLast24h(pp.TimePosted))
+                        photos.Add(pp);
             }
             return Ok(photos);
         }
