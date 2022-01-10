@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Instakilogram.Authentication;
+using System.IO;
 
 namespace Instakilogram.Controllers
 {
@@ -31,7 +32,7 @@ namespace Instakilogram.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<IActionResult> SignUp([FromForm] SignUpRequest request )
+        public async Task<IActionResult> SignUp([FromForm] SignUpRequest request)
         {
 
             if (this.Service.UserExists(request.UserName, request.Mail))
@@ -54,11 +55,28 @@ namespace Instakilogram.Controllers
                 Online = false,
                 PIN = null
             };
-
-            if (request.Picture==null)
+            ImageAsBase64 picture = new ImageAsBase64();
+         
+            if (request.Picture == null)
             {
-                string picture = this.Service.AddImage(request.Picture);
-                newUser.ProfilePicture += picture;
+                
+                //
+                if (request.Picture.Length > 0)
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        request.Picture.CopyTo(ms);
+                        var fileBytes = ms.ToArray();
+                       
+                        picture.FileName = request.Picture.FileName;
+                        picture.Base64Content = Convert.ToBase64String(fileBytes);
+                
+                        // act on the Base64 data
+                    }
+                }
+                //
+                string filename = this.Service.AddImage(picture, IUserService.ImageType.Profile);
+                newUser.ProfilePicture += filename;
                 this.Service.TmpStoreAccount(newUser);
             }
             else
@@ -66,7 +84,7 @@ namespace Instakilogram.Controllers
                 this.Service.TmpStoreAccount(newUser, request.Picture);
             }
 
-            return Ok(new { message = "Poslat vam je mail za validaciju."});
+            return Ok(new { message = "Poslat vam je mail za validaciju." });
         }
 
         //ubaciti redirect url u appsettings.json 
@@ -82,65 +100,65 @@ namespace Instakilogram.Controllers
             return BadRequest(new { message = "Doslo je do greske."});
         }
 
-        [Auth]
-        [HttpPost]
-        [Route("ChangeAccountInfo")]
-        public async Task<IActionResult> ChangeAccountInfo([FromForm] string? user_object, [FromForm] IFormFile? Picture)
-        {
-            string mail = (string)HttpContext.Items["User"];
+        //[Auth]
+        //[HttpPost]
+        //[Route("ChangeAccountInfo")]
+        //public async Task<IActionResult> ChangeAccountInfo([FromForm] string? user_object, [FromForm] IFormFile? Picture)
+        //{
+        //    string mail = (string)HttpContext.Items["User"];
 
-            Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
-                    .Match("(n:User)")
-                    .Where((User n) => n.Mail == mail);
+        //    Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
+        //            .Match("(n:User)")
+        //            .Where((User n) => n.Mail == mail);
 
-            ChangeAccountRequest request = JsonConvert.DeserializeObject<ChangeAccountRequest>(user_object);
+        //    ChangeAccountRequest request = JsonConvert.DeserializeObject<ChangeAccountRequest>(user_object);
 
-            //User user = this.Service.GetUserFromDb(mail); //da li user moze da se updatuje u NEO4j ako mu se prosledi ceo objekat, il za svaki propery mora SET klauzula
-            if(request!=null)
-            {
-                //query = this.Neo.Cypher
-                //    .Match("(n:User)")
-                //    .Where((User n) => n.Mail == mail);
+        //    //User user = this.Service.GetUserFromDb(mail); //da li user moze da se updatuje u NEO4j ako mu se prosledi ceo objekat, il za svaki propery mora SET klauzula
+        //    if(request!=null)
+        //    {
+        //        //query = this.Neo.Cypher
+        //        //    .Match("(n:User)")
+        //        //    .Where((User n) => n.Mail == mail);
 
-                if (!String.IsNullOrEmpty(request.UserName))
-                {
-                    if (this.Service.UserExists(request.UserName))
-                    {
-                        return BadRequest(new { message = "Korisnik vec postoji. Probajte drugi mail ili korisnicko ime, ili izvrsiti validaciju putem mejla." });
-                    }
-                    query.Set("n.userName: $new_user_name")
-                        .WithParam("new_user_name", request.UserName);
-                }
-                if (!String.IsNullOrEmpty(request.Name))
-                {
-                    query.Set("n.name: $new_name")
-                        .WithParam("new_name", request.Name);
-                }
-                if (!String.IsNullOrEmpty(request.Description))
-                {
-                    query.Set("n.description: $new_description")
-                        .WithParam("new_description", request.Description);
-                }
-                await query.ExecuteWithoutResultsAsync();
-            }
-            if (Picture != null)
-            {
-                //query = this.Neo.Cypher
-                //    .Match("(n:User)")
-                //    .Where((User n) => n.Mail == mail);
+        //        if (!String.IsNullOrEmpty(request.UserName))
+        //        {
+        //            if (this.Service.UserExists(request.UserName))
+        //            {
+        //                return BadRequest(new { message = "Korisnik vec postoji. Probajte drugi mail ili korisnicko ime, ili izvrsiti validaciju putem mejla." });
+        //            }
+        //            query.Set("n.userName: $new_user_name")
+        //                .WithParam("new_user_name", request.UserName);
+        //        }
+        //        if (!String.IsNullOrEmpty(request.Name))
+        //        {
+        //            query.Set("n.name: $new_name")
+        //                .WithParam("new_name", request.Name);
+        //        }
+        //        if (!String.IsNullOrEmpty(request.Description))
+        //        {
+        //            query.Set("n.description: $new_description")
+        //                .WithParam("new_description", request.Description);
+        //        }
+        //        await query.ExecuteWithoutResultsAsync();
+        //    }
+        //    if (Picture != null)
+        //    {
+        //        //query = this.Neo.Cypher
+        //        //    .Match("(n:User)")
+        //        //    .Where((User n) => n.Mail == mail);
 
-                User user = query.Return(n => n.As<User>())
-                    .ResultsAsync.Result.ToList().Single();
-                this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
-                string picture = this.Service.AddImage(Picture, IUserService.ImageType.Profile);
-                await query.Set("n.profilePicture: $new_profile_picture")
-                    .WithParam("new_profile_picture", picture)
-                    .ExecuteWithoutResultsAsync();
-            }
+        //        User user = query.Return(n => n.As<User>())
+        //            .ResultsAsync.Result.ToList().Single();
+        //        this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
+        //        string picture = this.Service.AddImage(Picture, IUserService.ImageType.Profile);
+        //        await query.Set("n.profilePicture: $new_profile_picture")
+        //            .WithParam("new_profile_picture", picture)
+        //            .ExecuteWithoutResultsAsync();
+        //    }
 
-            return Ok();
+        //    return Ok();
 
-        }
+        //}
 
         //ovo je samo ako zna password i zeli da ga promeni
         [Auth]

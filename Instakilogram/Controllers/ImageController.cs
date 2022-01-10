@@ -28,74 +28,82 @@ namespace Instakilogram.Controllers
             this.Neo = gc;
         }
 
-        [HttpPost]
-        [Route("AddPhoto")]
-        public async Task<IActionResult> AddPhoto([FromForm] string? image_object, [FromForm] IFormFile Picture)
-        {
-            string mail = (string)HttpContext.Items["User"];
+        //[HttpPost]
+        //[Route("AddPhoto")]
+        //public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request /*string?  image_object, [FromForm] IFormFile Picture*/)
+        //{
+        //    string mail = (string)HttpContext.Items["User"];
 
-            if (Picture != null)
-            {
-                string path = this.Service.AddImage(Picture);
-                Photo photo = new Photo {
-                    Path = path,
-                    TimePosted = DateTime.Now,
-                    Description = null
-                };
+        //    if (request.Picture != null)
+        //    {
+        //        string path = this.Service.AddImage(request.Picture);
+        //        Photo photo = new Photo {
+        //            Path = path,
+        //            TimePosted = DateTime.Now,
+        //            Description = null
+        //        };
 
-                await this.Neo.Cypher
-                    .Match("(u:User)")
-                    .Where((User n) => n.Mail == mail)
-                    .Create("(p:Photo $prop)")
-                    .WithParam("prop", photo)
-                    .Create("(u)-[r:UPLOADED]->(p)")
-                    .ExecuteWithoutResultsAsync();
+        //        await this.Neo.Cypher
+        //            .Match("(u:User)")
+        //            .Where((User u) => u.Mail == mail)
+        //            .Create("(p:Photo $prop)")
+        //            .WithParam("prop", photo)
+        //            //.Create("(u)-[r:UPLOADED]->(p)")
+        //            .ExecuteWithoutResultsAsync();
 
-                PhotoUpload request = JsonConvert.DeserializeObject<PhotoUpload>(image_object);
-                if (request != null)
-                {
-                    Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
-                    .Match("(p:Photo)")
-                    .Where((Photo p) => p.Path == photo.Path);
+        //        //PhotoUpload request = JsonConvert.DeserializeObject<PhotoUpload>(image_object);
+        //        if (request != null)
+        //        {
+                     
 
-                    if (!String.IsNullOrEmpty(request.Description))
-                    {
-                        query.Set("p.description: $desc")
-                            .WithParam("desc", request.Description);
-                    }
-                    if (request.TaggedUsers.Any())
-                    {
-                        foreach (string username in request.TaggedUsers)
-                        {
-                            if (this.Service.UserExists(username))
-                            {
-                                query.Match("(u:User)")
-                                    //AndWhere umesto Where
-                                    .Where((User u) => u.UserName == username)
-                                    .Create("(p)-[t:TAGS]->(u)");
-                            }
-                        }
-                    }
-                    if (request.Hashtags.Any())
-                    {
-                        foreach (string hTag in request.Hashtags)
-                        {
-                            //Hashtag tmpTag = this.Service.GetOrCreateHashtag(hTag);
-                            query.Merge("(hTag:Hashtag {title: $new_title})")
-                                .WithParam("new_title", hTag)
-                                .Create("(hTag)-[h:HAVE]->(p)");
-                            //proveriti da li je adekvatno napisan merge
-                        }
-                    }
-                    await query.ExecuteWithoutResultsAsync();
-                }
-                return Ok(new { message = "Uspesno upload-ovana slika." });
-            }
-            else
-            {
-                return BadRequest(new { message = "Slika nije stigla." });
-            }
-        }
+        //            if (!String.IsNullOrEmpty(request.Description))
+        //            {
+        //                var slicka = await this.Neo.Cypher
+        //                .Match("(p:Photo)")
+        //                .Where((Photo p) => p.Path == photo.Path)
+        //                //.Set("p.Description = {desc}")
+        //                //.WithParams(new{ desc = request.Description })
+        //                .Return<Photo>("p").ResultsAsync;
+        //                //.ExecuteWithoutResultsAsync();
+        //            }
+        //            if (request.TaggedUsers != null)
+        //            {
+        //                foreach (string username in request.TaggedUsers)
+        //                {
+        //                    if (this.Service.UserExists(username))
+        //                    {
+        //                        //query.Match("(u:User)")
+        //                        //    //AndWhere umesto Where
+        //                        //    .Where((User u) => u.UserName == username)
+        //                        //    .Create("(p)-[t:TAGS]->(u)");
+        //                    }
+        //                }
+        //            }
+        //            if (request.Hashtags != null)
+        //            {
+        //                foreach (string hTag in request.Hashtags)
+        //                {
+        //                    //Hashtag tmpTag = this.Service.GetOrCreateHashtag(hTag);
+
+
+
+        //                    //query.Merge("(hTag:Hashtag {title: $new_title})")
+        //                    //    .WithParam("new_title", hTag)
+        //                    //    .Create("(hTag)-[h:HAVE]->(p)");
+
+
+        //                    //proveriti da li je adekvatno napisan merge
+        //                }
+        //            }
+                   
+        //        }
+        //        return Ok(new { message = "Uspesno upload-ovana slika." });
+        //    }
+        //    else
+        //    {
+        //        return BadRequest(new { message = "Slika nije stigla." });
+        //    }
+        //}
 
         [HttpPost]
         [Route("ChangePhoto")]

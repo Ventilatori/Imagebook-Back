@@ -24,12 +24,16 @@ namespace Instakilogram.Controllers
         private IGraphClient Neo;
         private readonly IDriver _driver;
         public  IHostingEnvironment hostingEnvironment;
+        private IUserService Service;
+
+
 
         //private IUserService Service;
-        public APIController(IGraphClient gc, IHostingEnvironment hostingEnv)
+        public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service)
         {
             this.Neo = gc;
             hostingEnvironment = hostingEnv;
+            Service = service;
         }
 
         // [HttpGet]
@@ -83,8 +87,9 @@ namespace Instakilogram.Controllers
             foreach (User u in usersFollowed)
             {
                 var phList = await this.Neo.Cypher
-                    .Match("(a:User)-[:UPLOADED]->(p:Photo)")
-                    .Where((User a) => a.UserName == u.UserName)
+                    .Match("(a:User{UserName:{nameParam})-[:UPLOADED]->(p:Photo)")
+                    //.WithParams("nameParam", u.UserName)
+                    //.Where((Photo p) => Service.IsFromLast24h(p.TimePosted))
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
                     photos.Add(pp);

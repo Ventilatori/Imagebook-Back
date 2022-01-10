@@ -24,12 +24,12 @@ namespace Instakilogram.Service
             Verify,
             ResetPassword
         };
-        enum ImageType
+        public enum ImageType
         {
             Standard,
             Profile
         };
-        string AddImage(IFormFile? picture, ImageType img_type = ImageType.Standard);
+        string AddImage(ImageAsBase64 picture, ImageType img_type = ImageType.Standard);
         bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
         bool ImageCheck(string mail, string picture_path);
         int PinGenerator();
@@ -50,6 +50,8 @@ namespace Instakilogram.Service
         void StoreCookie(string key, string mail);
         string? CheckCookie(string key);
         void DeleteCookie(string key);
+
+        bool IsFromLast24h(DateTime timeForChecking);
     }
 
     public class UserService : IUserService
@@ -67,16 +69,16 @@ namespace Instakilogram.Service
             this.Environment = environment;
             this.Redis = mux;
         }
-        public string AddImage(IFormFile? picture, IUserService.ImageType img_type = IUserService.ImageType.Standard)
+        public string AddImage(ImageAsBase64 picture, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
             string folderPath = "Images\\"+img_type.ToString();
             string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
-            string file_name;
+            string file_name; //
             if (picture != null)
             {
                 file_name = Guid.NewGuid().ToString() + "_" + picture.FileName;
                 string filePath = Path.Combine(uploadsFolder, file_name);
-                picture.CopyTo(new FileStream(filePath, FileMode.Create));
+                File.WriteAllBytes(filePath, Convert.FromBase64String(picture.Base64Content));
             }
             else
             {
@@ -242,8 +244,28 @@ namespace Instakilogram.Service
 
             if(Picture != null)
             {
-                string img_string = JsonConvert.SerializeObject(Picture);
-                db.StringSetAsync(user.UserName + "Profile", img_string, t);
+                //
+                if (Picture.Length > 0)
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        Picture.CopyTo(ms);
+                        var fileBytes = ms.ToArray();
+                        string s = Convert.ToBase64String(fileBytes);
+
+                        ImageAsBase64 pic = new ImageAsBase64();
+                        pic.FileName = Picture.FileName;
+                        pic.Base64Content = s;
+
+
+;                      
+                        db.StringSetAsync(user.UserName + "Profile", JsonConvert.SerializeObject(pic), t);
+                        
+                    }
+                }
+                //
+                //string img_string = JsonConvert.SerializeObject(Picture);
+                //db.StringSetAsync(user.UserName + "Profile", img_string, t);
             }
             
             this.SendMail(user, IUserService.MailType.Verify);
@@ -259,9 +281,16 @@ namespace Instakilogram.Service
                 string img_key = user.UserName + "Profile";
                 if (String.Equals(user.ProfilePicture,"") && db.KeyExists(img_key))
                 {
-                    var img_string = db.StringGetAsync(img_key).Result.ToString();
-                    var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
-                    string picture = this.AddImage(Picture, IUserService.ImageType.Profile);
+                    var img_string = db.StringGetAsync(img_key).Result;
+                    ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
+            
+                    //
+
+                    //
+                    //
+                  //  var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
+        
+                    string picture = this.AddImage(pic, IUserService.ImageType.Profile);
                     user.ProfilePicture = picture;
                     db.KeyDelete(img_key);
                 }
@@ -427,5 +456,14 @@ namespace Instakilogram.Service
                 db.KeyDeleteAsync(key);
             }
         }
+
+        public bool IsFromLast24h(DateTime timeForChecking)
+        {
+            DateTime now = DateTime.Now;
+            if (timeForChecking > now.AddHours(-24) && timeForChecking <= now)
+                return true;
+            return false;
+        }
+
     }
 }
