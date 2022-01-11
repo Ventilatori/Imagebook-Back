@@ -35,6 +35,28 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
+        [Route("GetPhoto")]
+        public async Task<IActionResult> GetPhoto([FromBody] string picture_url)
+        {
+            string picture = this.Service.ExtractPictureName(picture_url);
+
+            Photo photo = this.Neo.Cypher
+                .Match("(p:Photo)")
+                .Where((Photo p) => p.Path == picture)
+                .Return(p => p.As<Photo>())
+                .ResultsAsync.Result.ToList().Single();
+
+            User photoOwner = this.Neo.Cypher
+                .Match("(u:User)-[:UPLOADED]->(p:Photo {path: $img_name})")
+                .WithParam("img_name", picture)
+                .Return(u => u.As<User>())
+                .ResultsAsync.Result.ToList().Single();
+
+            return Ok(new { Photo = photo, User = photoOwner});
+
+        }
+
+        [HttpGet]
         [Route("GetFeed24h/{callerUsername}")] 
         public async Task<IActionResult> GetFeed24h(string callerUsername)
         {

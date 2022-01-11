@@ -30,16 +30,16 @@ namespace Instakilogram.Controllers
             this.URL = url.Value;
         }
 
-        [HttpPost]
-        [Route("Test")]
-        public async Task<IActionResult> Test([FromForm] SignUpRequest request)
-        {
-            string hash, salt;
-            this.Service.PasswordHash2(out hash, out salt, request.Password);
+        //[HttpPost]
+        //[Route("Test")]
+        //public async Task<IActionResult> Test([FromForm] SignUpRequest request)
+        //{
+        //    string hash, salt;
+        //    this.Service.PasswordHash(out hash, out salt, request.Password);
 
 
-            return Ok(hash);
-        }
+        //    return Ok(hash);
+        //}
 
         [HttpPost]
         [Route("Register")]

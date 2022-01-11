@@ -14,6 +14,7 @@ using Instakilogram.Models;
 using StackExchange.Redis;
 using Newtonsoft.Json;
 using Instakilogram.RequestResponse;
+using Instakilogram.Services;
 
 namespace Instakilogram.Service
 {
@@ -52,7 +53,6 @@ namespace Instakilogram.Service
         void DeleteCookie(string key);
         ImageAsBase64 FormFileToBase64(IFormFile ff);
         bool IsFromLast24h(DateTime timeForChecking);
-        void PasswordHash2(out string hash_string, out string salt_string, string password_string);
     }
 
     public class UserService : IUserService
@@ -155,27 +155,12 @@ namespace Instakilogram.Service
             }
             return true;
         }
-        public void PasswordHash2(out string hash_string, out string salt_string, string password_string)
-        {
-            byte[] salt = Encoding.UTF8.GetBytes(this.GenerateCookie(8));
-            byte[] hash;
-            HMACMD5 hashObj = new HMACMD5(salt);
-            byte[] password = Encoding.UTF8.GetBytes(password_string);
-            hash = hashObj.ComputeHash(password);
-            hash_string = Encoding.UTF8.GetString(hash.ToArray());
-            salt_string = Encoding.UTF8.GetString(salt.ToArray());
-
-            hash_string = hashObj.HashSize.ToString();
-
-        }
-
-
-
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
         {
-            byte[] salt = Encoding.UTF8.GetBytes(this.GenerateCookie(8));
-            byte[] hash;
-            HMACSHA512 hashObj = new HMACSHA512(salt);
+            byte[] hash,salt;
+            //PasswordHasher hashObj = new PasswordHasher(this);
+            HMACSHA512 hashObj = new HMACSHA512();
+            salt = hashObj.Key;
             byte[] password = Encoding.UTF8.GetBytes(password_string);
             hash = hashObj.ComputeHash(password);
             hash_string = Encoding.UTF8.GetString(hash.ToArray());
