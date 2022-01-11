@@ -22,12 +22,14 @@ namespace Instakilogram.Controllers
         private IUserService Service;
         private IGraphClient Neo;
         private URLs URL;
+        private MailSettings Mail;
 
-        public AccountController(IUserService service, IGraphClient gc, IOptions<URLs> url)
+        public AccountController(IUserService service, IGraphClient gc, IOptions<URLs> url, IOptions<MailSettings> mailSettings)
         {
             this.Service = service;
             this.Neo = gc;
             this.URL = url.Value;
+            this.Mail = mailSettings.Value;
         }
                 
         [HttpPost]
@@ -50,6 +52,7 @@ namespace Instakilogram.Controllers
                 Mail = request.Mail,
                 Password = hash,
                 Salt = salt,
+                UserType = IUserService.UserType.Standard.ToString(),
                 Description = request.Description,
                 ProfilePicture = "",
                 Online = false,
@@ -291,6 +294,38 @@ namespace Instakilogram.Controllers
             this.Service.DeleteCookie(HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last());
 
             return Ok();
+        }
+
+        [HttpPost]
+        [Route("CreateAdmin/{code}")]
+        public async Task<IActionResult> CreateAdmin(string code)
+        {
+
+            if (this.Service.UserExists(this.Mail.Name, this.Mail.Address))
+            {
+                return BadRequest(new { message = "Administrator vec postoji." });
+            }
+
+            string hash, salt;
+            this.Service.PasswordHash(out hash, out salt, this.Mail.Password);
+
+            User admin = new User
+            {
+                UserName = this.Mail.Name,
+                Name = this.Mail.Name,
+                Mail = this.Mail.Address,
+                Password = hash,
+                Salt = salt,
+                UserType = IUserService.UserType.Admin.ToString(),
+                Description = "",
+                ProfilePicture = "default.png",
+                Online = false,
+                PIN = null
+            };
+
+            this.Service.StoreAdminAccount(admin);
+
+            return Ok(new { message = "Administrator uspesno kreiran." });
         }
 
     }

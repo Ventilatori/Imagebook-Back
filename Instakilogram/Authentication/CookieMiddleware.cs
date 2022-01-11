@@ -39,6 +39,7 @@ namespace Instakilogram.Authentication
                 if (!String.IsNullOrEmpty(mail))
                 {
                     context.Items["User"] = mail;
+                    context.Items["UserType"] = service.FindUserType(mail);
                 }
             }
             catch

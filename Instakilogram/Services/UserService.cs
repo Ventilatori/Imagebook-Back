@@ -30,6 +30,11 @@ namespace Instakilogram.Service
             Standard,
             Profile
         };
+        public enum UserType
+        {
+            Standard,
+            Admin
+        };
         string AddImage(ImageAsBase64 picture, ImageType img_type = ImageType.Standard);
         bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
         bool ImageCheck(string mail, string picture_path);
@@ -53,6 +58,8 @@ namespace Instakilogram.Service
         void DeleteCookie(string key);
         ImageAsBase64 FormFileToBase64(IFormFile ff);
         bool IsFromLast24h(DateTime timeForChecking);
+        string FindUserType(string mail);
+        void StoreAdminAccount(User admin);
     }
 
     public class UserService : IUserService
@@ -473,6 +480,25 @@ namespace Instakilogram.Service
             if (timeForChecking > now.AddHours(-24) && timeForChecking <= now)
                 return true;
             return false;
+        }
+
+        public string FindUserType(string mail)
+        {
+            User u = this.Neo.Cypher
+                .Match("(u:User)")
+                .Where((User u) => u.Mail == mail)
+                .Return(u => u.As<User>())
+                .ResultsAsync.Result.ToList().Single();
+
+            return u.UserType;
+        }
+
+        public void StoreAdminAccount(User admin)
+        {
+            this.Neo.Cypher
+                .Create("(u:User $prop)")
+                .WithParam("prop", admin)
+                .ExecuteWithoutResultsAsync();
         }
 
     }

@@ -16,6 +16,7 @@ namespace Instakilogram.Models
         public string Password { get; set; }
         [JsonIgnore]
         public string Salt { get; set; }
+        public string UserType { get; set; }
         [StringLength(50)]
         public string? Description { get; set; }
         public string? ProfilePicture { get; set; }
