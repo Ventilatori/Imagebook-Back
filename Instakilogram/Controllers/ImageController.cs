@@ -33,13 +33,13 @@ namespace Instakilogram.Controllers
         [Route("AddPhoto")]
         public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request /*string?  image_object, [FromForm] IFormFile Picture*/)
         {
-            //
-            ImageAsBase64 picture = new ImageAsBase64();
-
-            if (/*request.Picture == null*/ 1 == 1)
+            string mail = (string)HttpContext.Items["User"];
+            
+            if (request.Picture != null)
             {
-
                 //
+                ImageAsBase64 picture = new ImageAsBase64();
+
                 if (request.Picture.Length > 0)
                 {
                     using (var ms = new MemoryStream())
@@ -53,12 +53,8 @@ namespace Instakilogram.Controllers
                         // act on the Base64 data
                     }
                 }
-            }
                 //
-                string mail = (string)HttpContext.Items["User"];
 
-            if (request.Picture != null)
-            {
                 string path = this.Service.AddImage(picture);
                 Photo photo = new Photo
                 {
@@ -78,7 +74,6 @@ namespace Instakilogram.Controllers
                 //PhotoUpload request = JsonConvert.DeserializeObject<PhotoUpload>(image_object);
                 if (request != null)
                 {
-
                     if (!String.IsNullOrEmpty(request.Description))
                     {
                         var slicka = await this.Neo.Cypher
@@ -109,9 +104,11 @@ namespace Instakilogram.Controllers
                             //Hashtag tmpTag = this.Service.GetOrCreateHashtag(hTag);
 
 
+
                             //query.Merge("(hTag:Hashtag {title: $new_title})")
                             //    .WithParam("new_title", hTag)
                             //    .Create("(hTag)-[h:HAVE]->(p)");
+
 
                             //proveriti da li je adekvatno napisan merge
                         }
@@ -195,6 +192,7 @@ namespace Instakilogram.Controllers
         {
             string mail = (string)HttpContext.Items["User"];
 
+
             
             string picture_path = this.Service.ExtractPictureName(picture_url);
 
@@ -246,7 +244,7 @@ namespace Instakilogram.Controllers
                 .Merge("(a)-[r:LIKES]->(b)")
                  .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
                 .ExecuteWithoutResultsAsync();
-       
+
 
             return Ok();
         }
@@ -260,7 +258,7 @@ namespace Instakilogram.Controllers
                 .Where("a.UserName = $userA AND b.Path = $photoName")
                 .WithParams(new { userA = callerUsername, photoName = photofilename })
                 .Set("b.NumberOfLikes = b.NumberOfLikes - 1")
-                .Delete("r") 
+                .Delete("r")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }

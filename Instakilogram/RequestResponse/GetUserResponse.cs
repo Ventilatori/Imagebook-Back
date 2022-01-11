@@ -8,16 +8,8 @@ namespace Instakilogram.RequestResponse
 {
     public class GetUserResponse
     {
-        public GetUserResponse(IEnumerable<User> user, IEnumerable<Photo> uploadedPhotos, IEnumerable<Photo> taggedOnPhotos)
-        {
-            User = user;
-            UploadedPhotos = uploadedPhotos;
-            this.taggedOnPhotos = taggedOnPhotos;
-        }
-
-        public IEnumerable<User> User { get; set; }
-        public IEnumerable<Photo> UploadedPhotos { get; set; }
-        public IEnumerable<Photo> taggedOnPhotos { get; set; }
-
+        public User User{ get; set; }
+        public List<Photo> UploadedPhotos { get; set; }
+        public List<Photo> TaggedPhotos { get; set; }
     }
 }

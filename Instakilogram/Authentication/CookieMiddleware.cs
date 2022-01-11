@@ -30,6 +30,7 @@ namespace Instakilogram.Authentication
             await _next(context);
         }
 
+   
         private async Task AttachUser(HttpContext context, IUserService service, string cookie)
         {
             try
@@ -38,6 +39,7 @@ namespace Instakilogram.Authentication
                 if (!String.IsNullOrEmpty(mail))
                 {
                     context.Items["User"] = mail;
+                    context.Items["UserType"] = service.FindUserType(mail);
                 }
             }
             catch

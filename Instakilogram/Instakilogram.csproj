@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <Folder Include="Config\" />
-    <Folder Include="Services\" />
+    <Folder Include="wwwroot\Images\Standard\" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

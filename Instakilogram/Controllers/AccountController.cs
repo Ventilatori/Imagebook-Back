@@ -22,14 +22,16 @@ namespace Instakilogram.Controllers
         private IUserService Service;
         private IGraphClient Neo;
         private URLs URL;
+        private MailSettings Mail;
 
-        public AccountController(IUserService service, IGraphClient gc, IOptions<URLs> url)
+        public AccountController(IUserService service, IGraphClient gc, IOptions<URLs> url, IOptions<MailSettings> mailSettings)
         {
             this.Service = service;
             this.Neo = gc;
             this.URL = url.Value;
+            this.Mail = mailSettings.Value;
         }
-
+                
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> SignUp([FromForm] SignUpRequest request)
@@ -50,31 +52,16 @@ namespace Instakilogram.Controllers
                 Mail = request.Mail,
                 Password = hash,
                 Salt = salt,
+                UserType = IUserService.UserType.Standard.ToString(),
                 Description = request.Description,
                 ProfilePicture = "",
                 Online = false,
                 PIN = null
             };
-            ImageAsBase64 picture = new ImageAsBase64();
          
             if (request.Picture == null)
             {
-                
-                //
-                if (request.Picture.Length > 0)
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        request.Picture.CopyTo(ms);
-                        var fileBytes = ms.ToArray();
-                       
-                        picture.FileName = request.Picture.FileName;
-                        picture.Base64Content = Convert.ToBase64String(fileBytes);
-                
-                        // act on the Base64 data
-                    }
-                }
-                //
+                ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
                 string filename = this.Service.AddImage(picture, IUserService.ImageType.Profile);
                 newUser.ProfilePicture += filename;
                 this.Service.TmpStoreAccount(newUser);
@@ -100,65 +87,65 @@ namespace Instakilogram.Controllers
             return BadRequest(new { message = "Doslo je do greske."});
         }
 
-        //[Auth]
-        //[HttpPost]
-        //[Route("ChangeAccountInfo")]
-        //public async Task<IActionResult> ChangeAccountInfo([FromForm] string? user_object, [FromForm] IFormFile? Picture)
-        //{
-        //    string mail = (string)HttpContext.Items["User"];
+        [Auth]
+        [HttpPost]
+        [Route("ChangeAccountInfo")]
+        public async Task<IActionResult> ChangeAccountInfo([FromForm] ChangeAccountRequest request)
+        {
+            string mail = (string)HttpContext.Items["User"];
 
-        //    Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
-        //            .Match("(n:User)")
-        //            .Where((User n) => n.Mail == mail);
+            Neo4jClient.Cypher.ICypherFluentQuery query = this.Neo.Cypher
+                    .Match("(n:User)")
+                    .Where((User n) => n.Mail == mail);
 
-        //    ChangeAccountRequest request = JsonConvert.DeserializeObject<ChangeAccountRequest>(user_object);
+            //User user = this.Service.GetUserFromDb(mail); //da li user moze da se updatuje u NEO4j ako mu se prosledi ceo objekat, il za svaki propery mora SET klauzula
+            if (request != null)
+            {
+                //query = this.Neo.Cypher
+                //    .Match("(n:User)")
+                //    .Where((User n) => n.Mail == mail);
 
-        //    //User user = this.Service.GetUserFromDb(mail); //da li user moze da se updatuje u NEO4j ako mu se prosledi ceo objekat, il za svaki propery mora SET klauzula
-        //    if(request!=null)
-        //    {
-        //        //query = this.Neo.Cypher
-        //        //    .Match("(n:User)")
-        //        //    .Where((User n) => n.Mail == mail);
+                if (!String.IsNullOrEmpty(request.UserName))
+                {
+                    if (this.Service.UserExists(request.UserName))
+                    {
+                        return BadRequest(new { message = "Korisnik vec postoji. Probajte drugi mail ili korisnicko ime, ili izvrsiti validaciju putem mejla." });
+                    }
+                    query.Set("n.userName: $new_user_name")
+                        .WithParam("new_user_name", request.UserName);
+                }
+                if (!String.IsNullOrEmpty(request.Name))
+                {
+                    query.Set("n.name: $new_name")
+                        .WithParam("new_name", request.Name);
+                }
+                if (!String.IsNullOrEmpty(request.Description))
+                {
+                    query.Set("n.description: $new_description")
+                        .WithParam("new_description", request.Description);
+                }
+                await query.ExecuteWithoutResultsAsync();
+            }
+            if (request.Picture != null)
+            {
+                //query = this.Neo.Cypher
+                //    .Match("(n:User)")
+                //    .Where((User n) => n.Mail == mail);
 
-        //        if (!String.IsNullOrEmpty(request.UserName))
-        //        {
-        //            if (this.Service.UserExists(request.UserName))
-        //            {
-        //                return BadRequest(new { message = "Korisnik vec postoji. Probajte drugi mail ili korisnicko ime, ili izvrsiti validaciju putem mejla." });
-        //            }
-        //            query.Set("n.userName: $new_user_name")
-        //                .WithParam("new_user_name", request.UserName);
-        //        }
-        //        if (!String.IsNullOrEmpty(request.Name))
-        //        {
-        //            query.Set("n.name: $new_name")
-        //                .WithParam("new_name", request.Name);
-        //        }
-        //        if (!String.IsNullOrEmpty(request.Description))
-        //        {
-        //            query.Set("n.description: $new_description")
-        //                .WithParam("new_description", request.Description);
-        //        }
-        //        await query.ExecuteWithoutResultsAsync();
-        //    }
-        //    if (Picture != null)
-        //    {
-        //        //query = this.Neo.Cypher
-        //        //    .Match("(n:User)")
-        //        //    .Where((User n) => n.Mail == mail);
+                ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
 
-        //        User user = query.Return(n => n.As<User>())
-        //            .ResultsAsync.Result.ToList().Single();
-        //        this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
-        //        string picture = this.Service.AddImage(Picture, IUserService.ImageType.Profile);
-        //        await query.Set("n.profilePicture: $new_profile_picture")
-        //            .WithParam("new_profile_picture", picture)
-        //            .ExecuteWithoutResultsAsync();
-        //    }
+                User user = query.Return(n => n.As<User>())
+                    .ResultsAsync.Result.ToList().Single();
+                this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
+                string picture_name = this.Service.AddImage(picture, IUserService.ImageType.Profile);
+                await query.Set("n.profilePicture: $new_profile_picture")
+                    .WithParam("new_profile_picture", picture_name)
+                    .ExecuteWithoutResultsAsync();
+            }
 
-        //    return Ok();
+            return Ok();
 
-        //}
+        }
 
         //ovo je samo ako zna password i zeli da ga promeni
         [Auth]
@@ -179,6 +166,7 @@ namespace Instakilogram.Controllers
             {
                 return BadRequest(new { message = "Pogresna sifra." });
             }
+
 
             string hash, salt;
             this.Service.PasswordHash(out hash, out salt, request.New);
@@ -249,7 +237,7 @@ namespace Instakilogram.Controllers
 
         [HttpPost]
         [Route("LogIn")]
-        public async Task<IActionResult> SignIn([FromBody] LogInRequest request)
+        public async Task<IActionResult> SignIn([FromForm] LogInRequest request)
         {
             if(this.Service.UserExists("",request.Mail))
             {
@@ -264,7 +252,7 @@ namespace Instakilogram.Controllers
                 {
                     string cookie = this.Service.GenerateCookie();
                     this.Service.StoreCookie(cookie, user.Mail);
-                    query.Set("u.online = 'true'").ExecuteWithoutResultsAsync(); //mozda 'true' treba preko WithParam()
+                    await query.Set("u.online = 'true'").ExecuteWithoutResultsAsync(); //mozda 'true' treba preko WithParam()
                     
                     LogInResponse response = new LogInResponse
                     {
@@ -297,7 +285,7 @@ namespace Instakilogram.Controllers
             string mail = (string)HttpContext.Items["User"];
 
             //proveri da li je Set() ok napisan
-            this.Neo.Cypher
+            await this.Neo.Cypher
                 .Match("(u:User)")
                 .Where((User u) => u.Mail == mail)
                 .Set("u.online = 'false'")
@@ -306,6 +294,38 @@ namespace Instakilogram.Controllers
             this.Service.DeleteCookie(HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last());
 
             return Ok();
+        }
+
+        [HttpPost]
+        [Route("CreateAdmin/{code}")]
+        public async Task<IActionResult> CreateAdmin(string code)
+        {
+
+            if (this.Service.UserExists(this.Mail.Name, this.Mail.Address))
+            {
+                return BadRequest(new { message = "Administrator vec postoji." });
+            }
+
+            string hash, salt;
+            this.Service.PasswordHash(out hash, out salt, this.Mail.Password);
+
+            User admin = new User
+            {
+                UserName = this.Mail.Name,
+                Name = this.Mail.Name,
+                Mail = this.Mail.Address,
+                Password = hash,
+                Salt = salt,
+                UserType = IUserService.UserType.Admin.ToString(),
+                Description = "",
+                ProfilePicture = "default.png",
+                Online = false,
+                PIN = null
+            };
+
+            this.Service.StoreAdminAccount(admin);
+
+            return Ok(new { message = "Administrator uspesno kreiran." });
         }
 
     }

@@ -25,4 +25,8 @@ CREATE
 (nature)-[:HAVE]->(drvo),
 (sky)-[:HAVE]->(oblak);
 
+CREATE CONSTRAINT ON (u:User) ASSERT u.UserName IS UNIQUE;
+CREATE CONSTRAINT ON (u:User) ASSERT u.Mail IS UNIQUE;
+CREATE CONSTRAINT ON (p:Photo) ASSERT p.Path IS UNIQUE;
+CREATE CONSTRAINT ON (h:Hashtag) ASSERT h.Title IS UNIQUE;
 

@@ -8,6 +8,7 @@ namespace Instakilogram.RequestResponse
 {
     public class ChangePhotoRequest
     {
+        [Required]
         public string PictureURL { get; set; }
         public string? Description { get; set; }
         public List<string>? Tags { get; set; }

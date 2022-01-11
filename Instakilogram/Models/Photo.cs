@@ -10,7 +10,6 @@ namespace Instakilogram.Models
         public string Path { get; set; }
         public DateTime TimePosted { get; set; }
         public string? Description { get; set; }
-
         public int NumberOfLikes { get; set; }
     }
 }

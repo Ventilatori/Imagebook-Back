@@ -11,5 +11,6 @@ namespace Instakilogram.Service
         public string Password { get; set; }
         public string Name { get; set; }
         public string Subject { get; set; }
+        public string AdminCode { get; set; }
     }
 }
