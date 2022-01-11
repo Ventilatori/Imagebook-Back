@@ -7,13 +7,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using Neo4jClient;
 using Instakilogram.Models;
 using StackExchange.Redis;
 using Newtonsoft.Json;
+using Instakilogram.RequestResponse;
 
 namespace Instakilogram.Service
 {
@@ -50,8 +50,9 @@ namespace Instakilogram.Service
         void StoreCookie(string key, string mail);
         string? CheckCookie(string key);
         void DeleteCookie(string key);
-
+        ImageAsBase64 FormFileToBase64(IFormFile ff);
         bool IsFromLast24h(DateTime timeForChecking);
+        void PasswordHash2(out string hash_string, out string salt_string, string password_string);
     }
 
     public class UserService : IUserService
@@ -119,37 +120,66 @@ namespace Instakilogram.Service
                 .Return(p => p.As<Photo>())
                 .ResultsAsync.Result.ToList().Single();
             return p == null ? false : true;
-        }        
-        public bool CheckPassword(string hash_string, string salt_string, string password_string)
-        { //iskljcuimo hashiranje privremeno
-
-            if(hash_string == password_string) return true;
-            return false;
-            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            //HMACSHA512 hashObj = new HMACSHA512(salt);
-            //byte[] password = System.Text.Encoding.UTF8.GetBytes(password_string);
-            //byte[] computed_hash = hashObj.ComputeHash(password);
-
-            //int len = computed_hash.Length;
-            //for (int i = 0; i < len; i++)
-            //{
-            //    if (valid_hash[i] != computed_hash[i])
-            //    {
-            //        return false;
-            //    }
-            //}
-            //return true;
         }
-        public void PasswordHash(out string hash_string, out string salt_string, string password_string)
+        public ImageAsBase64 FormFileToBase64(IFormFile ff)
         {
-            byte[] hash, salt;
-            HMACSHA512 hashObj = new HMACSHA512();
-            salt = hashObj.Key;
+            ImageAsBase64 result = new ImageAsBase64();
+            if (ff.Length > 0)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    ff.CopyTo(ms);
+                    var fileBytes = ms.ToArray();
+                    result.FileName = ff.FileName;
+                    result.Base64Content = Convert.ToBase64String(fileBytes);
+                    // act on the Base64 data
+                }
+            }
+            return result;
+        }
+        public bool CheckPassword(string hash_string, string salt_string, string password_string)
+        {
+            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            HMACSHA512 hashObj = new HMACSHA512(salt);
+            byte[] password = Encoding.UTF8.GetBytes(password_string);
+            byte[] computed_hash = hashObj.ComputeHash(password);
+
+            int len = computed_hash.Length;
+            for (int i = 0; i < len; i++)
+            {
+                if (valid_hash[i] != computed_hash[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        public void PasswordHash2(out string hash_string, out string salt_string, string password_string)
+        {
+            byte[] salt = Encoding.UTF8.GetBytes(this.GenerateCookie(8));
+            byte[] hash;
+            HMACMD5 hashObj = new HMACMD5(salt);
             byte[] password = Encoding.UTF8.GetBytes(password_string);
             hash = hashObj.ComputeHash(password);
-            hash_string = Encoding.UTF8.GetString(hash);
-            salt_string = Encoding.UTF8.GetString(salt);
+            hash_string = Encoding.UTF8.GetString(hash.ToArray());
+            salt_string = Encoding.UTF8.GetString(salt.ToArray());
+
+            hash_string = hashObj.HashSize.ToString();
+
+        }
+
+
+
+        public void PasswordHash(out string hash_string, out string salt_string, string password_string)
+        {
+            byte[] salt = Encoding.UTF8.GetBytes(this.GenerateCookie(8));
+            byte[] hash;
+            HMACSHA512 hashObj = new HMACSHA512(salt);
+            byte[] password = Encoding.UTF8.GetBytes(password_string);
+            hash = hashObj.ComputeHash(password);
+            hash_string = Encoding.UTF8.GetString(hash.ToArray());
+            salt_string = Encoding.UTF8.GetString(salt.ToArray());
         }
 
         public void SendMail(User user, IUserService.MailType type)
@@ -257,6 +287,7 @@ namespace Instakilogram.Service
                         pic.FileName = Picture.FileName;
                         pic.Base64Content = s;
 
+
 ;                      
                         db.StringSetAsync(user.UserName + "Profile", JsonConvert.SerializeObject(pic), t);
                         
@@ -282,13 +313,7 @@ namespace Instakilogram.Service
                 {
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
-            
-                    //
-
-                    //
-                    //
-                  //  var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
-        
+                    //var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
                     string picture = this.AddImage(pic, IUserService.ImageType.Profile);
                     user.ProfilePicture = picture;
                     db.KeyDelete(img_key);

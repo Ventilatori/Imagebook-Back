@@ -24,12 +24,9 @@ namespace Instakilogram.Controllers
     public class APIController : ControllerBase
     {
         private IGraphClient Neo;
-        private readonly IDriver _driver;
         public IHostingEnvironment hostingEnvironment;
         private IUserService Service;
 
-
-        //private IUserService Service;
         public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service)
         {
             this.Neo = gc;
@@ -37,46 +34,8 @@ namespace Instakilogram.Controllers
             Service = service;
         }
 
-        // [HttpGet]
-        // [Route("preuzmi")]
-        // public async Task<IActionResult> Preuzmi()
-        // {
-        //     var rez = await this.Neo.Cypher
-        //         .Match("(n:User)")
-        //         .Return<User>("n").ResultsAsync;
-        //     List<User> korisnici = rez.ToList();
-        //     User korisnik = korisnici.First();
-        //     return Ok(rez);
-        // }
-
-        // [HttpPost]
-        // [Route("dodaj")]
-        // public async Task<IActionResult> Dodaj([FromBody] User u)
-        // {
-
-        //     var rez = await this.Neo.Cypher
-        //         .Create("(n:User $korisnik)")
-        //         .WithParam("korisnik", u)
-        //         .Return(u => u.As<User>()).ResultsAsync;
-        //     //.ExecuteWithoutResultsAsync();
-
-        //     return Ok();
-        // }
-
-        //nisam siguran sto se konverzije u rez tice, prepravicu ovo
-        //[HttpGet]
-        //[Route("GetProfile/{username}")]
-        //public async Task<IActionResult> GetProfile(string username)
-        //{
-        //    var rez = this.Neo.Cypher
-        //        .Match("(u:User)-[:UPLOADED]->(p:Photo)")
-        //        .Where((User u)=> u.userName == username)
-        //        .Return((User u, Photo p) => new{ user = u.As<User>(), photos = p.CollectAs<Photo>() } )
-        //        .ResultsAsync.Result.Single();
-        //}
-
         [HttpGet]
-        [Route("GetFeed24h/{callerUsername}")] //
+        [Route("GetFeed24h/{callerUsername}")] 
         public async Task<IActionResult> GetFeed24h(string callerUsername)
         {
             var usersFollowed = await this.Neo.Cypher
@@ -99,7 +58,6 @@ namespace Instakilogram.Controllers
             }
             return Ok(photos);
         }
-
 
         [HttpPost]
         [Route("FollowUser/{callerUsername}/{usernameToFollow}")]
@@ -227,10 +185,6 @@ namespace Instakilogram.Controllers
 
             var matches = peopleToRecommend.Where(kvp => kvp.Value > minimumConnectedPeople);
 
-
-
-
-
             return Ok(matches);
         }
 
@@ -238,22 +192,36 @@ namespace Instakilogram.Controllers
         [Route("GetUser/{userName}")]
         public async Task<IActionResult> GetUser(string userName)
         {
-            var user = await this.Neo.Cypher
+            var user_query = await this.Neo.Cypher
                 .Match("(a:User)")
                 .Where((User a) => a.UserName == userName)
-                .Return<User>("a").ResultsAsync;
+                //.Return<User>("a")
+                .Return(a => a.As<User>())
+                .ResultsAsync;
+            User user = user_query.Single();
 
-            var uploadedPhotos = await this.Neo.Cypher
+            var photos_query = await this.Neo.Cypher
                .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
                .WithParam("nameParam", userName)
-               .Return<Photo>("p").ResultsAsync;
+               //.Return<Photo>("p")
+               .Return(p => p.CollectAs<Photo>())
+               .ResultsAsync;
+            List<Photo> uploadedPhotos = photos_query.ToList().Single().ToList();
 
-            var taggedOnPhotos = await this.Neo.Cypher
+            var taggedOnPhotos_query = await this.Neo.Cypher
                 .Match("(p:Photo)-[:TAGS]->(a:User{UserName:$nameParam})")
                 .WithParam("nameParam", userName)
-                .Return<Photo>("p").ResultsAsync;
+                //.Return<Photo>("p")
+                .Return(p => p.CollectAs<Photo>())
+                .ResultsAsync;
+            List<Photo> taggedOnPhotos = taggedOnPhotos_query.ToList().Single().ToList();
 
-            return Ok(new GetUserResponse(user, uploadedPhotos, taggedOnPhotos));
+            return Ok(new GetUserResponse
+            {
+                User = user,
+                UploadedPhotos = uploadedPhotos, 
+                TaggedPhotos = taggedOnPhotos 
+            });
         }
     }
 }
