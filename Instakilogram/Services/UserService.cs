@@ -141,7 +141,8 @@ namespace Instakilogram.Service
         {
             byte[] salt = Encoding.UTF8.GetBytes(salt_string);
             byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            HMACSHA512 hashObj = new HMACSHA512(salt);
+            //HMACSHA512 hashObj = new HMACSHA512(salt);
+            PasswordHasher hashObj = new PasswordHasher(this,salt);
             byte[] password = Encoding.UTF8.GetBytes(password_string);
             byte[] computed_hash = hashObj.ComputeHash(password);
 
@@ -158,8 +159,8 @@ namespace Instakilogram.Service
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
         {
             byte[] hash,salt;
-            //PasswordHasher hashObj = new PasswordHasher(this);
-            HMACSHA512 hashObj = new HMACSHA512();
+            PasswordHasher hashObj = new PasswordHasher(this);
+            //HMACSHA512 hashObj = new HMACSHA512();
             salt = hashObj.Key;
             byte[] password = Encoding.UTF8.GetBytes(password_string);
             hash = hashObj.ComputeHash(password);

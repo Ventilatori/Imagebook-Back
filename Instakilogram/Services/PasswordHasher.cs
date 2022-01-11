@@ -20,59 +20,103 @@ namespace Instakilogram.Services
             }
             else
             {
-                this.Key = Encoding.UTF8.GetBytes(service.GenerateCookie(4));
+                this.Key = Encoding.UTF8.GetBytes(service.GenerateCookie(8));
             }
         }
 
         public byte[] ComputeHash(byte[] password)
         {
-            byte[] result = new byte[password.Length + 4];
-            //int offset;
-            //if (password.Length > 4)
-            //{
-            //    offset = 4;
-            //}
-            //else
-            //{
-            //    offset = 5;
-            //}
-            //byte[] result = new byte[password.Length+offset];
-            byte[] new_password = new byte[password.Length];
-
-            int key_index=0;
-            for(int i=0; i<password.Length; i++)
+            int index = 0;
+            int moduo;
+            if (password.Length > this.Key.Length)
             {
-                key_index = i % 4;
-                new_password[i] = RotateLeft(new_password[i], this.Key[key_index]);
-                //if(i%2==0)
-                //{
-                //    //new_password[i] = Convert.ToByte(RotateLeft(BitConverter.ToInt32(new_password, i),BitConverter.ToInt32(this.Key,key_index)));
-                //    new_password[i] = RotateLeft(new_password[i], this.Key[key_index]);
-                //}
-                //else
-                //{
-                //    //new_password[i] = Convert.ToByte(RotateRight(BitConverter.ToInt32(new_password, i), BitConverter.ToInt32(this.Key, key_index)));
-                //    new_password[i] = RotateRight(new_password[i], this.Key[key_index]);
-                //}
+                byte[] result = new byte[password.Length * 2];
+                for (int i = 0; i < password.Length; i++)
+                {
+                    moduo = i % this.Key.Length;
+                    result[index] = this.Key[moduo];
+                    index++;
+                    result[index] = Operation(password[i],i);
+                    index++;
+                }
+                return result;
             }
-            //if(password.Length > 4)
-            //{
-            //    for (int i = 0; i < key_index; i++)
-            //    {
-                    
-            //    }
-            //}
-            //else
-            //{
-            //    this.Key.CopyTo(result,0);
-            //    new_password.CopyTo(result,4);
-            //}
+            else
+            {
+                byte[] result = new byte[this.Key.Length * 2];
+                for (int i = 0; i < this.Key.Length; i++)
+                {
+                    moduo = i % password.Length;
+                    result[index] = Operation(password[moduo], i);
+                    index++;
+                    result[index] = this.Key[i];
+                    index++;
+                }
+                return result;
+            }
+        }
 
-            this.Key.CopyTo(result, 0);
-            new_password.CopyTo(result, 4);
+        //public byte[] ComputeHash(byte[] password)
+        //{
+        //    int offset;
+        //    if (password.Length > 4)
+        //    {
+        //        offset = 4;
+        //    }
+        //    else
+        //    {
+        //        offset = 5;
+        //    }
+        //    byte[] result = new byte[password.Length + offset];
+        //    byte[] new_password = new byte[password.Length];
 
-            //return result;
-            return new_password;
+        //    int key_index=0;
+        //    for(int i=0; i<password.Length; i++)
+        //    {
+        //        key_index = i % 4;
+        //        if (i % 2 == 0)
+        //        {
+        //            //new_password[i] = Convert.ToByte(RotateLeft(BitConverter.ToInt32(new_password, i),BitConverter.ToInt32(this.Key,key_index)));
+        //            new_password[i] = RotateLeft(new_password[i], this.Key[key_index]);
+        //        }
+        //        else
+        //        {
+        //            //new_password[i] = Convert.ToByte(RotateRight(BitConverter.ToInt32(new_password, i), BitConverter.ToInt32(this.Key, key_index)));
+        //            new_password[i] = RotateRight(new_password[i], this.Key[key_index]);
+        //        }
+        //    }
+        //    if (password.Length > 4)
+        //    {
+        //        for (int i = 0; i < key_index; i++)
+        //        {
+
+        //        }
+        //    }
+        //    else
+        //    {
+        //        this.Key.CopyTo(result, 0);
+        //        new_password.CopyTo(result, 4);
+        //    }
+
+        //    this.Key.CopyTo(result, 0);
+        //    new_password.CopyTo(result, 4);
+
+        //    return result;
+        //}
+
+        private byte Operation(byte value, int iteration)
+        {
+            int value_int = (int)value;
+            if (iteration % 2 == 0)
+            {
+                value_int += 2;
+                return (byte)value_int;
+            }
+            else
+            {
+                value_int -= 2;
+                return (byte)value_int;
+            }
         }
 
         private byte RotateLeft(byte value, byte count)

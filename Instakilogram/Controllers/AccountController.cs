@@ -29,18 +29,7 @@ namespace Instakilogram.Controllers
             this.Neo = gc;
             this.URL = url.Value;
         }
-
-        //[HttpPost]
-        //[Route("Test")]
-        //public async Task<IActionResult> Test([FromForm] SignUpRequest request)
-        //{
-        //    string hash, salt;
-        //    this.Service.PasswordHash(out hash, out salt, request.Password);
-
-
-        //    return Ok(hash);
-        //}
-
+                
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> SignUp([FromForm] SignUpRequest request)
