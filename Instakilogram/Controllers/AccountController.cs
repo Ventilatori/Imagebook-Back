@@ -61,9 +61,9 @@ namespace Instakilogram.Controllers
          
             if (request.Picture == null)
             {
-                ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
-                string filename = this.Service.AddImage(picture, IUserService.ImageType.Profile);
-                newUser.ProfilePicture += filename;
+                //ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
+                //string filename = this.Service.AddImage(picture, IUserService.ImageType.Profile);
+                //newUser.ProfilePicture += filename;
                 this.Service.TmpStoreAccount(newUser);
             }
             else
