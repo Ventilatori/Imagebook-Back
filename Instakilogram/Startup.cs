@@ -37,12 +37,13 @@ namespace Instakilogram
                 configuration.RootPath = "ClientApp/dist";
             });
 
-            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+            services.AddCors(options =>
             {
-                builder.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader();
-            }));
+                options.AddPolicy("CORS", builder =>
+                {
+                    builder.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+                });
+            });
 
 
             services.Configure<URLs>(Configuration.GetSection("URLs"));
@@ -85,7 +86,7 @@ namespace Instakilogram
             }
 
             app.UseRouting();
-            app.UseCors();
+            app.UseCors("CORS");
 
             app.UseMiddleware<CookieMiddleware>();
 
