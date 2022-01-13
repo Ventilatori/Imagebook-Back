@@ -184,14 +184,14 @@ namespace Instakilogram.Service
 
             if (type == IUserService.MailType.Verify)
             {
-                string path = Path.Combine(Environment.WebRootPath, "Mail\\Verify.html");
+                string path = Path.Combine(Environment.WebRootPath, "Mail/Verify.html");
                 string text = System.IO.File.ReadAllText(path);
                 text = text.Replace("~", URL.VerifyURL + user.UserName);
                 msg.Body = text;
             }
             else if (type == IUserService.MailType.ResetPassword)
             {
-                string path = Path.Combine(Environment.WebRootPath, "Mail\\ResetPassword.html");
+                string path = Path.Combine(Environment.WebRootPath, "Mail/ResetPassword.html");
                 string text = System.IO.File.ReadAllText(path);
                 int PIN = PinGenerator();
                 this.SavePin(user.Mail, PIN);
