@@ -82,7 +82,7 @@ namespace Instakilogram.Controllers
             string link = this.Service.ApproveAccount(key);
             if (!String.IsNullOrEmpty(link))
             {
-                return Redirect(link); //stranica obavestenje/login
+                return Ok(new { message = "Uspesno odobren" });
             }
             return BadRequest(new { message = "Doslo je do greske."});
         }
