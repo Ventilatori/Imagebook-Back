@@ -57,12 +57,14 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetFeed24h/{callerUsername}")] 
-        public async Task<IActionResult> GetFeed24h(string callerUsername)
+        [Route("GetFeed24h")]
+        public async Task<IActionResult> GetFeed24h()
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             var usersFollowed = await this.Neo.Cypher
                 .Match("(a:User)-[:FOLLOWS]->(b:User)")
-                .Where((User a) => a.UserName == callerUsername)
+                .Where((User a) => a.Mail == Mail)
                 .Return<User>("b").ResultsAsync;
 
             var photos = new List<Photo>();
@@ -83,61 +85,70 @@ namespace Instakilogram.Controllers
 
 
         [HttpPost]
-        [Route("FollowUser/{callerUsername}/{usernameToFollow}")]
-        public async Task<IActionResult> FollowUser(string callerUsername, string usernameToFollow)
+        [Route("FollowUser/{usernameToFollow}")]
+        public async Task<IActionResult> FollowUser(string usernameToFollow)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             await this.Neo.Cypher
                 .Match("(a:User),(b:User)")
-                .Where("a.UserName = $userA AND b.UserName = $userB")
-                .WithParams(new { userA = callerUsername, userB = usernameToFollow })
+                .Where("a.Mail = $userA AND b.UserName = $userB")
+                .WithParams(new { userA = Mail, userB = usernameToFollow })
                 .Create("(a)-[r:FOLLOWS]->(b)")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
 
         [HttpDelete]
-        [Route("UnfollowUser/{callerUsername}/{usernameToUnfollow}")]
-        public async Task<IActionResult> UnfollowUser(string callerUsername, string usernameToUnfollow)
+        [Route("UnfollowUser/{usernameToUnfollow}")]
+        public async Task<IActionResult> UnfollowUser(string usernameToUnfollow)
         {
+            string Mail = (string)HttpContext.Items["User"];
             await this.Neo.Cypher
                 .Match("(a:User)-[r:FOLLOWS]->(b:User)")
-                .Where("a.UserName = $userA AND b.UserName = $userB")
-                .WithParams(new { userA = callerUsername, userB = usernameToUnfollow })
+                .Where("a.Mail = $userA AND b.UserName = $userB")
+                .WithParams(new { userA = Mail, userB = usernameToUnfollow })
                 .Delete("r")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
 
         [HttpPost]
-        [Route("FollowHashtag/{callerUsername}/{hashtagToFollow}")]
-        public async Task<IActionResult> FollowHashtag(string callerUsername, string hashtagToFollow)
+        [Route("FollowHashtag/{hashtagToFollow}")]
+        public async Task<IActionResult> FollowHashtag(string hashtagToFollow)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             await this.Neo.Cypher
                 .Match("(a:User),(b:Hashtag)")
-                .Where("a.UserName = $userA AND b.Title = $hashtagB")
-                .WithParams(new { userA = callerUsername, hashtagB = hashtagToFollow })
+                .Where("a.Mail = $userA AND b.Title = $hashtagB")
+                .WithParams(new { userA = Mail, hashtagB = hashtagToFollow })
                 .Create("(a)-[r:FOLLOWS]->(b)")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
 
         [HttpDelete]
-        [Route("UnfollowHashtag/{callerUsername}/{hashtagToUnfollow}")]
-        public async Task<IActionResult> Unfollow(string callerUsername, string hashtagToUnfollow)
+        [Route("UnfollowHashtag/{hashtagToUnfollow}")]
+        public async Task<IActionResult> Unfollow(string hashtagToUnfollow)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             await this.Neo.Cypher
                 .Match("(a:User)-[r:FOLLOWS]->(b:Hashtag)")
-                .Where("a.UserName = $userA AND b.Title = $hashtagB")
-                .WithParams(new { userA = callerUsername, hashtagB = hashtagToUnfollow })
+                .Where("a.Mail = $userA AND b.Title = $hashtagB")
+                .WithParams(new { userA = Mail, hashtagB = hashtagToUnfollow })
                 .Delete("r")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
 
         [HttpPost]
-        [Route("UploadProfilePic/{callerUsername}")]
-        public async Task<IActionResult> UploadProfilePic(string callerUsername, IFormFile file)
+        [Route("UploadProfilePic")]
+        public async Task<IActionResult> UploadProfilePic(IFormFile file)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             if (!file.ContentType.Contains("image"))
             {
                 return Ok("bad image");
@@ -178,16 +189,18 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetRecommendedUsers/{callerUsername}")]
-        public async Task<IActionResult> GetRecommendedUsers(string callerUsername)
+        [Route("GetRecommendedUsers")]
+        public async Task<IActionResult> GetRecommendedUsers()
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             int minimumConnectedPeople = 2;
 
             Dictionary<User, int> peopleToRecommend = new Dictionary<User, int>();
 
             var myFriendList = await this.Neo.Cypher
               .Match("(a:User)-[:FOLLOWS]->(b:User)")
-              .Where((User a) => a.UserName == callerUsername)
+              .Where((User a) => a.Mail == Mail)
               .Return<User>("b").ResultsAsync;
 
             foreach (User friend in myFriendList)

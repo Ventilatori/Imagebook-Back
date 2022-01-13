@@ -124,7 +124,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("ChangePhoto")]
+        [Route("ChangePhoto")] 
         public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
         {
             string mail = (string)HttpContext.Items["User"];
@@ -224,23 +224,23 @@ namespace Instakilogram.Controllers
 
         //TODO FIX: Photo numberOfLikes has no limit per single caller
         [HttpPost]
-        [Route("LikePhoto/{callerUsername}/{photofilename}")]
-        public async Task<IActionResult> LikePhoto(string callerUsername, string photofilename)
-
+        [Route("LikePhoto/{photofilename}")]
+        public async Task<IActionResult> LikePhoto(string photofilename)
         {
+            string Mail = (string)HttpContext.Items["User"];
             //check if like exists
             var query = await this.Neo.Cypher
              .Match("(a:User)-[r:LIKES]->(b:Photo)")
-             .Where("a.UserName = $userA AND b.Path = $photoName")
-             .WithParams(new { userA = callerUsername, photoName = photofilename })
+             .Where("a.Mail = $userA AND b.Path = $photoName")
+             .WithParams(new { userA = Mail, photoName = photofilename })
               .Return<User>("a").ResultsAsync;
             if (query.Count() != 0)
                 return Ok("vec ste lajkovali!");
             //create like
             await this.Neo.Cypher
                 .Match("(a:User),(b:Photo)")
-                .Where("a.UserName = $userA AND b.Path = $photoName")
-                .WithParams(new { userA = callerUsername, photoName = photofilename })
+                .Where("a.Mail = $userA AND b.Path = $photoName")
+                .WithParams(new { userA = Mail, photoName = photofilename })
                 .Merge("(a)-[r:LIKES]->(b)")
                  .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
                 .ExecuteWithoutResultsAsync();
@@ -250,13 +250,15 @@ namespace Instakilogram.Controllers
         }
 
         [HttpDelete]
-        [Route("UnlikePhoto/{callerUsername}/{photofilename}")]
-        public async Task<IActionResult> UnlikePhoto(string callerUsername, string photofilename)
+        [Route("UnlikePhoto/{photofilename}")]
+        public async Task<IActionResult> UnlikePhoto(string photofilename)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             await this.Neo.Cypher
                 .Match("(a:User)-[r:LIKES]->(b:Photo)")
-                .Where("a.UserName = $userA AND b.Path = $photoName")
-                .WithParams(new { userA = callerUsername, photoName = photofilename })
+                .Where("a.Mail = $userA AND b.Path = $photoName")
+                .WithParams(new { userA = Mail, photoName = photofilename })
                 .Set("b.NumberOfLikes = b.NumberOfLikes - 1")
                 .Delete("r")
                 .ExecuteWithoutResultsAsync();
