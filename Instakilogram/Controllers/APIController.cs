@@ -52,7 +52,19 @@ namespace Instakilogram.Controllers
                 .Return(u => u.As<User>())
                 .ResultsAsync.Result.ToList().Single();
 
-            return Ok(new { Photo = photo, User = photoOwner});
+            List<string> tUsers = this.Neo.Cypher
+               .Match("(u:User)<-[:TAGS]-(p:Photo {path: $img_name})")
+               .WithParam("img_name", picture)
+               .Return(u => u.As<User>().UserName)
+               .ResultsAsync.Result.ToList();
+
+            List<Hashtag> htags = this.Neo.Cypher
+                .Match("(h:Hashtag)-[:HAVE]->(p:Photo {path: $img_name})")
+                .WithParam("img_name", picture)
+                .Return(h => h.As<Hashtag>())
+                .ResultsAsync.Result.ToList();
+
+            return Ok(new { Photo = photo, User = photoOwner, Hashtags = htags, TaggedUsers = tUsers });
 
         }
 
@@ -234,7 +246,8 @@ namespace Instakilogram.Controllers
                 //.Return<User>("a")
                 .Return(a => a.As<User>())
                 .ResultsAsync;
-            User user = user_query.Single();
+
+            User user = user_query.Count() == 0? null : user_query.Single();
 
             var photos_query = await this.Neo.Cypher
                .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
@@ -242,7 +255,7 @@ namespace Instakilogram.Controllers
                //.Return<Photo>("p")
                .Return(p => p.CollectAs<Photo>())
                .ResultsAsync;
-            List<Photo> uploadedPhotos = photos_query.ToList().Single().ToList();
+            List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null :photos_query.ToList().Single().ToList();
 
             var taggedOnPhotos_query = await this.Neo.Cypher
                 .Match("(p:Photo)-[:TAGS]->(a:User{UserName:$nameParam})")
@@ -250,7 +263,7 @@ namespace Instakilogram.Controllers
                 //.Return<Photo>("p")
                 .Return(p => p.CollectAs<Photo>())
                 .ResultsAsync;
-            List<Photo> taggedOnPhotos = taggedOnPhotos_query.ToList().Single().ToList();
+            List<Photo> taggedOnPhotos = taggedOnPhotos_query.Count() == 0 ? null : taggedOnPhotos_query.ToList().Single().ToList();
 
             return Ok(new GetUserResponse
             {
