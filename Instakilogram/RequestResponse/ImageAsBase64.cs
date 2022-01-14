@@ -9,6 +9,8 @@ namespace Instakilogram.RequestResponse
     {
         public string FileName { get; set; }
         public string Base64Content { get; set; }
+
+        public string? CallerEmail { get; set; }
         public ImageAsBase64()
         {
         }

@@ -295,6 +295,15 @@ namespace Instakilogram.Controllers
 
             return Ok();
         }
+        
+    
+        [HttpPost]
+        [Route("GetUser/{username}")]
+        public async Task<IActionResult> GetUser(string username)
+        {
+            var user = Service.GetUser(username);
+            return Ok(user);
+        }
 
         [HttpPost]
         [Route("CreateAdmin/{code}")]

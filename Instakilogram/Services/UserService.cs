@@ -149,7 +149,7 @@ namespace Instakilogram.Service
             byte[] salt = Encoding.UTF8.GetBytes(salt_string);
             byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
             //HMACSHA512 hashObj = new HMACSHA512(salt);
-            PasswordHasher hashObj = new PasswordHasher(this,salt);
+            PasswordHasher hashObj = new PasswordHasher(this, salt);
             byte[] password = Encoding.UTF8.GetBytes(password_string);
             byte[] computed_hash = hashObj.ComputeHash(password);
 
@@ -334,7 +334,7 @@ namespace Instakilogram.Service
             List<string> exceptions = new List<string>();
 
             List<Hashtag> hashtags = this.Neo.Cypher
-                .Match("(h:Hashtag)-[:HAVE]->(p:Photo {path: $photopath})")
+                .Match("(h:Hashtag)-[:HTAGS]->(p:Photo {path: $photopath})")
                 .WithParam("photopath", picture_path)
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync.Result.ToList().Single().ToList();
@@ -357,7 +357,7 @@ namespace Instakilogram.Service
             if(exceptions!=null)
             {
                 hash_list = this.Neo.Cypher
-                .Match("(h:Hashtag)-[r:HAVE]->(p:Photo {path: $photopath})")
+                .Match("(h:Hashtag)-[r:HTAGS]->(p:Photo {path: $photopath})")
                 .WithParam("photopath", picture_path)
                 .Where((Hashtag h) => !exceptions.Contains(h.Title))
                 .Delete("r")
@@ -367,7 +367,7 @@ namespace Instakilogram.Service
             else
             {
                 hash_list = this.Neo.Cypher
-                .Match("(h:Hashtag)-[r:HAVE]->(p:Photo {path: $photopath})")
+                .Match("(h:Hashtag)-[r:HTAGS]->(p:Photo {path: $photopath})")
                 .WithParam("photopath", picture_path)
                 .Delete("r")
                 .Return(h => h.CollectAs<Hashtag>())
@@ -380,12 +380,12 @@ namespace Instakilogram.Service
                 //jednom recju odraditi sve u 1 naredbi (query-ju)
 
                 //this.Neo.Cypher
-                //    .Match("(h:Hashtag {title: $val})-[r:HAVE]->(p:Photo)")
+                //    .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
                 //    .WithParam("val", hashtag.Title)
                 //    .Where()
 
                 List<Photo> photos = this.Neo.Cypher
-                    .Match("(h:Hashtag {title: $val})-[r:HAVE]->(p:Photo)")
+                    .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
                     .WithParam("val", hashtag.Title)
                     .Return(p => p.CollectAs<Photo>())
                     .ResultsAsync.Result.ToList().Single().ToList();
@@ -500,6 +500,8 @@ namespace Instakilogram.Service
                 .WithParam("prop", admin)
                 .ExecuteWithoutResultsAsync();
         }
+
+        
 
     }
 }

@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Instakilogram.Authentication;
 using Instakilogram.RequestResponse;
 using System.IO;
+using StackExchange.Redis;
 
 namespace Instakilogram.Controllers
 {
@@ -22,11 +23,13 @@ namespace Instakilogram.Controllers
     {
         private IUserService Service;
         private IGraphClient Neo;
+        private IConnectionMultiplexer Redis;
 
-        public ImageController(IUserService service, IGraphClient gc)
+        public ImageController(IUserService service, IGraphClient gc, IConnectionMultiplexer redis)
         {
             this.Service = service;
             this.Neo = gc;
+            this.Redis = redis;
         }
 
         [HttpPost]
@@ -34,7 +37,7 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request /*string?  image_object, [FromForm] IFormFile Picture*/)
         {
             string mail = (string)HttpContext.Items["User"];
-            
+
             if (request.Picture != null)
             {
                 //
@@ -46,14 +49,10 @@ namespace Instakilogram.Controllers
                     {
                         request.Picture.CopyTo(ms);
                         var fileBytes = ms.ToArray();
-
                         picture.FileName = request.Picture.FileName;
                         picture.Base64Content = Convert.ToBase64String(fileBytes);
-
-                        // act on the Base64 data
                     }
                 }
-                //
 
                 string path = this.Service.AddImage(picture);
                 Photo photo = new Photo
@@ -71,18 +70,19 @@ namespace Instakilogram.Controllers
                     .Create("(u)-[r:UPLOADED]->(p)")
                     .ExecuteWithoutResultsAsync();
 
-                //PhotoUpload request = JsonConvert.DeserializeObject<PhotoUpload>(image_object);
+
                 if (request != null)
                 {
                     if (!String.IsNullOrEmpty(request.Description))
                     {
-                        var slicka = await this.Neo.Cypher
+                        /*var slicka = */
+                        await this.Neo.Cypher
                         .Match("(p:Photo)")
                         .Where((Photo p) => p.Path == photo.Path)
-                        //.Set("p.Description = {desc}")
-                        //.WithParams(new{ desc = request.Description })
-                        .Return<Photo>("p").ResultsAsync;
-                        //.ExecuteWithoutResultsAsync();
+                        .Set("p.Description = {desc}")
+                        .WithParams(new { desc = request.Description })
+                        //.Return<Photo>("p").ResultsAsync;
+                        .ExecuteWithoutResultsAsync();
                     }
                     if (request.TaggedUsers != null)
                     {
@@ -90,10 +90,11 @@ namespace Instakilogram.Controllers
                         {
                             if (this.Service.UserExists(username))
                             {
-                                //query.Match("(u:User)")
-                                //    //AndWhere umesto Where
-                                //    .Where((User u) => u.UserName == username)
-                                //    .Create("(p)-[t:TAGS]->(u)");
+                                await this.Neo.Cypher
+                                    .Match("(u:User)")
+                                    .Where((User u) => u.UserName == username)
+                                    .Create("(p)-[t:TAGS]->(u)")
+                                    .ExecuteWithoutResultsAsync();
                             }
                         }
                     }
@@ -107,7 +108,7 @@ namespace Instakilogram.Controllers
 
                             //query.Merge("(hTag:Hashtag {title: $new_title})")
                             //    .WithParam("new_title", hTag)
-                            //    .Create("(hTag)-[h:HAVE]->(p)");
+                            //    .Create("(hTag)-[h:HTAGS]->(p)");
 
 
                             //proveriti da li je adekvatno napisan merge
@@ -123,67 +124,68 @@ namespace Instakilogram.Controllers
             }
         }
 
+
         [HttpPost]
-        [Route("ChangePhoto")] 
+        [Route("ChangePhoto")]
         public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
         {
-            string mail = (string)HttpContext.Items["User"];
-            
-            string picture_path = this.Service.ExtractPictureName(request.PictureURL);
+            //string mail = (string)HttpContext.Items["User"];
 
-            if (!this.Service.ImageCheck(mail, picture_path))
-            {
-                return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
-            }
+            //string picture_path = this.Service.ExtractPictureName(request.PictureURL);
 
-            if(!String.IsNullOrEmpty(request.Description))
-            {
-                await this.Neo.Cypher
-                    .Match("(p:Photo {path: $photopath})")
-                    .WithParam("photopath", picture_path)
-                    .Set("p.description: $new")
-                    .WithParam("new", request.Description)
-                    .ExecuteWithoutResultsAsync();
-            }
-            if(request.Tags.Any())
-            {
-                await this.Neo.Cypher
-                    .Match("(p:Photo {path: $photopath})-[r:TAGS]->(u:User)")
-                    .WithParam("photopath", picture_path)
-                    .Delete("r")
-                    .ExecuteWithoutResultsAsync();
+            //if (!this.Service.ImageCheck(mail, picture_path))
+            //{
+            //    return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
+            //}
 
-                foreach(string tag in request.Tags)
-                {
-                    await this.Neo.Cypher
-                        .Match("(p:Photo {path: $photopath}),(u:User {userName: $name})")
-                        .WithParam("photopath", picture_path)
-                        .WithParam("name", tag)
-                        .Create("(p)-[r:TAGS]->(u)")
-                        .ExecuteWithoutResultsAsync();
-                }
-            }
-            if(request.Hashtags.Any())
-            {    
-                List<string> exceptions = this.Service.CommonListElements(picture_path, request.Hashtags);
-                this.Service.UpdateHashtags(picture_path, exceptions);
+            //if (!String.IsNullOrEmpty(request.Description))
+            //{
+            //    await this.Neo.Cypher
+            //        .Match("(p:Photo {path: $photopath})")
+            //        .WithParam("photopath", picture_path)
+            //        .Set("p.description: $new")
+            //        .WithParam("new", request.Description)
+            //        .ExecuteWithoutResultsAsync();
+            //}
+            //if (request.Tags.Any())
+            //{
+            //    await this.Neo.Cypher
+            //        .Match("(p:Photo {path: $photopath})-[r:TAGS]->(u:User)")
+            //        .WithParam("photopath", picture_path)
+            //        .Delete("r")
+            //        .ExecuteWithoutResultsAsync();
 
-                foreach(string title in request.Hashtags)
-                {
-                    if(!exceptions.Contains(title))
-                    {
-                        Hashtag htag = this.Service.GetOrCreateHashtag(title);
-                        await this.Neo.Cypher
-                            .Match("(p:Photo {path: $path_val}), (h:Hashtag {title: $h_title})")
-                            .WithParam("path_val", picture_path)
-                            .WithParam("h_title", htag.Title)
-                            .Create("(h)-[r:HAVE]->(p)")
-                            .ExecuteWithoutResultsAsync();
-                    }
-                }
-            }
+            //    foreach (string tag in request.Tags)
+            //    {
+            //        await this.Neo.Cypher
+            //            .Match("(p:Photo {path: $photopath}),(u:User {userName: $name})")
+            //            .WithParam("photopath", picture_path)
+            //            .WithParam("name", tag)
+            //            .Create("(p)-[r:TAGS]->(u)")
+            //            .ExecuteWithoutResultsAsync();
+            //    }
+            //}
+            //if (request.Hashtags.Any())
+            //{
+            //    List<string> exceptions = this.Service.CommonListElements(picture_path, request.Hashtags);
+            //    this.Service.UpdateHashtags(picture_path, exceptions);
 
-            return Ok(new { message = "Uspesno promenjena slika." });            
+            //    foreach (string title in request.Hashtags)
+            //    {
+            //        if (!exceptions.Contains(title))
+            //        {
+            //            Hashtag htag = this.Service.GetOrCreateHashtag(title);
+            //            await this.Neo.Cypher
+            //                .Match("(p:Photo {path: $path_val}), (h:Hashtag {title: $h_title})")
+            //                .WithParam("path_val", picture_path)
+            //                .WithParam("h_title", htag.Title)
+            //                .Create("(h)-[r:HTAGS]->(p)")
+            //                .ExecuteWithoutResultsAsync();
+            //        }
+            //    }
+            //}
+
+            return Ok(new { message = "Uspesno promenjena slika." });
         }
 
         [HttpDelete]
@@ -193,7 +195,7 @@ namespace Instakilogram.Controllers
             string mail = (string)HttpContext.Items["User"];
 
 
-            
+
             string picture_path = this.Service.ExtractPictureName(picture_url);
 
             if (!this.Service.ImageCheck(mail, picture_path))
@@ -262,6 +264,36 @@ namespace Instakilogram.Controllers
                 .Set("b.NumberOfLikes = b.NumberOfLikes - 1")
                 .Delete("r")
                 .ExecuteWithoutResultsAsync();
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("AddPhotoToQueue")]
+        public async Task<IActionResult> AddPhotoToQueue([FromForm] PhotoUpload request)
+        {
+           
+            string Mail = (string)HttpContext.Items["User"];
+            PhotoWithBase64 ph = new PhotoWithBase64();
+            ph.Metadata.Path = request.Picture.FileName;
+            ph.Metadata.Description = request.Description;
+            ph.Metadata.TimePosted = DateTime.Now;
+            ph.CallerEmail = Mail;
+            ph.TaggedUsers = request.TaggedUsers;
+            ph.Hashtags = request.Hashtags;
+
+            var db = Redis.GetDatabase();
+            if (request.Picture.Length > 0)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    request.Picture.CopyTo(ms);
+                    var fileBytes = ms.ToArray();
+                    string s = Convert.ToBase64String(fileBytes);
+                    ph.Base64Content = s;
+                    db.ListLeftPush("modqueue", JsonConvert.SerializeObject(ph));
+
+                }
+            }
             return Ok();
         }
     }
