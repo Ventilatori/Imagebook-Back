@@ -297,7 +297,7 @@ namespace Instakilogram.Controllers
         }
         
     
-        [HttpPost]
+        [HttpGet]
         [Route("GetUser/{username}")]
         public async Task<IActionResult> GetUser(string username)
         {
@@ -335,14 +335,6 @@ namespace Instakilogram.Controllers
             this.Service.StoreAdminAccount(admin);
 
             return Ok(new { message = "Administrator uspesno kreiran." });
-        }
-
-        [HttpPost]
-        [Route("GetUser/{username}")]
-        public async Task<IActionResult> GetUser(string username)
-        {
-            var user = Service.GetUser(username);
-            return Ok(user);
         }
     }
 }
