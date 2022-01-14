@@ -97,8 +97,12 @@ namespace Instakilogram.Controllers
 
         [HttpDelete]
         [Route("DeletePhoto")]
-        public async Task<IActionResult> DeletePhoto([FromBody] string picture_url)
+        public async Task<IActionResult> DeletePhoto( )
         {
+            //todo edit string
+            string picture_url = "";
+    
+
             string mail = (string)HttpContext.Items["User"];
 
 
@@ -190,7 +194,7 @@ namespace Instakilogram.Controllers
             ph.CallerEmail = Mail;
             ph.Metadata.TaggedUsers = request.TaggedUsers;
             ph.Metadata.Hashtags = request.Hashtags;
-
+            
 
             using (var ms = new MemoryStream())
             {

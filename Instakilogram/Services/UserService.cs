@@ -64,7 +64,7 @@ namespace Instakilogram.Service
         public bool IsPhotoLiked(string userEmail, string photoFileName);
 
         public Task<bool> AddImageToNeo(PhotoWithBase64 ph);
-        public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto);
+        public void ComputePhotoProp(string userEmail, ref PhotoWithBase64 ph);
 
     }
 
@@ -99,7 +99,7 @@ namespace Instakilogram.Service
             {
                 ph.Metadata.Path = "default.png";
             }
-
+            
             await this.AddImageToNeo(ph);
 
             return ph.Metadata.Path;
@@ -156,21 +156,21 @@ namespace Instakilogram.Service
         }
         public bool CheckPassword(string hash_string, string salt_string, string password_string)
         {
-            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            ////HMACSHA512 hashObj = new HMACSHA512(salt);
-            //PasswordHasher hashObj = new PasswordHasher(this, salt);
-            //byte[] password = Encoding.UTF8.GetBytes(password_string);
-            //byte[] computed_hash = hashObj.ComputeHash(password);
+            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            //HMACSHA512 hashObj = new HMACSHA512(salt);
+            PasswordHasher hashObj = new PasswordHasher(this, salt);
+            byte[] password = Encoding.UTF8.GetBytes(password_string);
+            byte[] computed_hash = hashObj.ComputeHash(password);
 
-            //int len = computed_hash.Length;
-            //for (int i = 0; i < len; i++)
-            //{
-            //    if (valid_hash[i] != computed_hash[i])
-            //    {
-            //        return false;
-            //    }
-            //}
+            int len = computed_hash.Length;
+            for (int i = 0; i < len; i++)
+            {
+                if (valid_hash[i] != computed_hash[i])
+                {
+                    return false;
+                }
+            }
             return true;
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
@@ -573,9 +573,10 @@ namespace Instakilogram.Service
             }
             return true;
         }
-        public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto)
+        public void ComputePhotoProp(string userEmail, ref PhotoWithBase64 ph)
         {
-            //compute likes
+            var uncomputedPhoto = ph.Metadata;
+            //compute is liked 
             var query = this.Neo.Cypher
                 .Match("(a:User)-[r:LIKES]->(b:Photo)")
                 .Where("a.Mail = $userA AND b.Path = $photoName")

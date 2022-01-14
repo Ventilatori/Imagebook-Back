@@ -319,29 +319,29 @@ namespace Instakilogram.Controllers
             });
         }
 
-        [HttpGet]
-        [Route("getphotoproto/{path}")]
-        public async Task<IActionResult> getphotoproto(string path)
-        {
-            string Mail = (string)HttpContext.Items["User"];
+        //[HttpGet]
+        //[Route("getphotoproto/{path}")]
+        //public async Task<IActionResult> getphotoproto(string path)
+        //{
+        //    string Mail = (string)HttpContext.Items["User"];
 
 
 
 
-            var qphoto = await this.Neo.Cypher
-                .Match("(p:Photo)")
-                .Where((Photo p) => p.Path == path)
-                .Return(p => p.As<Photo>())
-                .ResultsAsync;
+        //    var qphoto = await this.Neo.Cypher
+        //        .Match("(p:Photo)")
+        //        .Where((Photo p) => p.Path == ph.path)
+        //        .Return(p => p.As<Photo>())
+        //        .ResultsAsync;
 
-            if (qphoto.Count() == 0)
-            {
-                return Ok("Nema slicke");
-            }
+        //    if (qphoto.Count() == 0)
+        //    {
+        //        return Ok("Nema slicke");
+        //    }
 
-            Photo photo = qphoto.Single();
-            Service.ComputePhotoProp(Mail, ref photo);
-            return Ok(photo);
-        }
+        //    Photo photo = qphoto.Single();
+           
+        //    return Ok(photo);
+        //}
     }
 }

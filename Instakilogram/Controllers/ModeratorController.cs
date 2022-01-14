@@ -34,31 +34,31 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetUnapprovedImages")]
+        [Route("GetUnapprovedImage")]
         public async Task<IActionResult> GetUnapprovedPhotos()
         {
-            List<PhotoWithBase64> pics = new List<PhotoWithBase64>();
+ 
             var db = this.Redis.GetDatabase();
+            PhotoWithBase64 pic = new PhotoWithBase64();
             if (db.KeyExists("modqueue"))
             {
 
-                var images = db.ListRange("modqueue", 0, -1);
-                foreach (var redisval in images)
-                    pics.Add(JsonConvert.DeserializeObject<PhotoWithBase64>(redisval));
-                db.KeyDelete("modqueue");
+                var image = db.ListRightPop("modqueue");
+             
+                 pic = JsonConvert.DeserializeObject<PhotoWithBase64>(image);
+             
             }
-            return Ok(pics);
+            return Ok(pic);
         }
 
         [HttpPost]
         [Route("ApprovePhoto")]
-        public async Task<IActionResult> ApprovePhoto([FromBody] List<PhotoWithBase64> photos)
+        public async Task<IActionResult> ApprovePhoto([FromBody] PhotoWithBase64 photo)
         {
-            foreach (PhotoWithBase64 ph in photos)
-            {
-                string path = await this.Service.AddImage(ph);
+            
+                await this.Service.AddImage(photo);
 
-            }
+            
             return Ok();
         }
     }
