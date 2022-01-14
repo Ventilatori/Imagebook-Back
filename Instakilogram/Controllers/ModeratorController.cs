@@ -78,9 +78,9 @@ namespace Instakilogram.Controllers
                    .Set("p.Description = {desc}")
                    .WithParams(new { desc = ph.Metadata.Description });
                 }
-                if (ph.TaggedUsers != null)
+                if (ph.Metadata.TaggedUsers != null)
                 {
-                    foreach (string username in ph.TaggedUsers)
+                    foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
                     {
                         if (this.Service.UserExists(username))
                         {
@@ -92,9 +92,9 @@ namespace Instakilogram.Controllers
                         }
                     }
                 }
-                if (ph.Hashtags != null)
+                if (ph.Metadata.Hashtags != null)
                 {
-                    foreach (string hTag in ph.Hashtags)
+                    foreach (string hTag in ph.Metadata.Hashtags.Split('|'))
                     {
                       await this.Neo.Cypher
                         .Merge("(h:Hashtag {title: $new_title})")

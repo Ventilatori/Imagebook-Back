@@ -56,11 +56,11 @@ namespace Instakilogram.Controllers
             }
             else
             {
-                
+
                 photo = qphoto.Single();
-                if(photo != null) photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
+                if (photo != null) photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
             }
-    
+
 
             var qphotoOwner = await this.Neo.Cypher
                 .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
@@ -87,7 +87,7 @@ namespace Instakilogram.Controllers
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync;
 
-            List <Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
+            List<Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
 
             return Ok(new { Photo = photo, User = owner, Hashtags = htags, TaggedUsers = tUsers });
 
@@ -117,7 +117,7 @@ namespace Instakilogram.Controllers
                     if (Service.IsFromLast24h(pp.TimePosted))
                     {
                         pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path);
-                        photos.Add(new { pp, u });
+                        photos.Add(new { pp,  u });
                     }
             }
             return Ok(photos);
@@ -277,7 +277,7 @@ namespace Instakilogram.Controllers
                 .Return(a => a.As<User>())
                 .ResultsAsync;
 
-            User user = user_query.Count() == 0? null : user_query.Single();
+            User user = user_query.Count() == 0 ? null : user_query.Single();
 
             var photos_query = await this.Neo.Cypher
                .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
@@ -285,13 +285,13 @@ namespace Instakilogram.Controllers
                //.Return<Photo>("p")
                .Return(p => p.CollectAs<Photo>())
                .ResultsAsync;
-            List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null :photos_query.ToList().Single().ToList();
+            List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null : photos_query.ToList().Single().ToList();
 
             if (uploadedPhotos != null)
             {
                 foreach (Photo pp in uploadedPhotos)
                 {
-                    pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path); ;
+                    pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path);
                 }
             }
 
@@ -303,8 +303,8 @@ namespace Instakilogram.Controllers
                 .ResultsAsync;
             List<Photo> taggedOnPhotos = taggedOnPhotos_query.Count() == 0 ? null : taggedOnPhotos_query.ToList().Single().ToList();
 
-            if(taggedOnPhotos!=null)
-            { 
+            if (taggedOnPhotos != null)
+            {
                 foreach (Photo tOP in taggedOnPhotos)
                 {
                     tOP.IsLiked = Service.IsPhotoLiked(Mail, tOP.Path); ;
@@ -314,9 +314,34 @@ namespace Instakilogram.Controllers
             return Ok(new GetUserResponse
             {
                 User = user,
-                UploadedPhotos = uploadedPhotos, 
-                TaggedPhotos = taggedOnPhotos 
+                UploadedPhotos = uploadedPhotos,
+                TaggedPhotos = taggedOnPhotos
             });
+        }
+
+        [HttpGet]
+        [Route("getphotoproto/{path}")]
+        public async Task<IActionResult> getphotoproto(string path)
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+
+
+
+            var qphoto = await this.Neo.Cypher
+                .Match("(p:Photo)")
+                .Where((Photo p) => p.Path == path)
+                .Return(p => p.As<Photo>())
+                .ResultsAsync;
+
+            if (qphoto.Count() == 0)
+            {
+                return Ok("Nema slicke");
+            }
+
+            Photo photo = qphoto.Single();
+            Service.ComputePhotoProp(Mail, ref photo);
+            return Ok(photo);
         }
     }
 }

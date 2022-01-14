@@ -9,7 +9,7 @@ CREATE
 (oblak:Photo{Path:"mrk4", TimePosted:datetime("2018-06-02T10:23:32.122+0100"), Description: "OBLAKK"}),
 
 (nature:Hashtag{Title:"Nature"}),
-(sky:Hashtag{Title:"Nature"}),
+(sky:Hashtag{Title:"Sky"}),
 
 (clyde56)-[:UPLOADED]->(ker),
 (clyde56)-[:UPLOADED]->(drvo),
@@ -22,8 +22,8 @@ CREATE
 
 (drvo)-[:TAGS]->(johnnyz),
 
-(nature)-[:HAVE]->(drvo),
-(sky)-[:HAVE]->(oblak);
+(nature)-[:HTAGS]->(drvo),
+(sky)-[:HTAGS]->(oblak);
 
 CREATE CONSTRAINT ON (u:User) ASSERT u.UserName IS UNIQUE;
 CREATE CONSTRAINT ON (u:User) ASSERT u.Mail IS UNIQUE;

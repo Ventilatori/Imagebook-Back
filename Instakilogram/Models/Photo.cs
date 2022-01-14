@@ -15,7 +15,8 @@ namespace Instakilogram.Models
         public int NumberOfLikes { get; set; }
         public bool IsLiked { get; set; }
 
-        public List<string>? TaggedUsers { get; set; }
-        public List<string>? Hashtags { get; set; }
+        public string Uploader { get; set; }
+        public string TaggedUsers { get; set; }
+        public string Hashtags { get; set; }
     }
 }

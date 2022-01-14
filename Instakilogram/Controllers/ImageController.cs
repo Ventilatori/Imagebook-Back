@@ -33,100 +33,6 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("AddPhoto")]
-        public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request /*string?  image_object, [FromForm] IFormFile Picture*/)
-        {
-            string mail = (string)HttpContext.Items["User"];
-
-            if (request.Picture != null)
-            {
-                //
-                ImageAsBase64 picture = new ImageAsBase64();
-
-                if (request.Picture.Length > 0)
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        request.Picture.CopyTo(ms);
-                        var fileBytes = ms.ToArray();
-                        picture.FileName = request.Picture.FileName;
-                        picture.Base64Content = Convert.ToBase64String(fileBytes);
-                    }
-                }
-
-                string path = this.Service.AddImage(picture);
-                Photo photo = new Photo
-                {
-                    Title = request.Title,
-                    Path = path,
-                    TimePosted = DateTime.Now,
-                    Description = request.Title
-                };
-
-                await this.Neo.Cypher
-                    .Match("(u:User)")
-                    .Where((User u) => u.Mail == mail)
-                    .Create("(p:Photo $prop)")
-                    .WithParam("prop", photo)
-                    .Create("(u)-[r:UPLOADED]->(p)")
-                    .ExecuteWithoutResultsAsync();
-
-
-                if (request != null)
-                {
-                    if (!String.IsNullOrEmpty(request.Description))
-                    {
-                        /*var slicka = */
-                        await this.Neo.Cypher
-                        .Match("(p:Photo)")
-                        .Where((Photo p) => p.Path == photo.Path)
-                        .Set("p.Description = {desc}")
-                        .WithParams(new { desc = request.Description })
-                        //.Return<Photo>("p").ResultsAsync;
-                        .ExecuteWithoutResultsAsync();
-                    }
-                    if (request.TaggedUsers != null)
-                    {
-                        foreach (string username in request.TaggedUsers)
-                        {
-                            if (this.Service.UserExists(username))
-                            {
-                                await this.Neo.Cypher
-                                    .Match("(u:User)")
-                                    .Where((User u) => u.UserName == username)
-                                    .Create("(p)-[t:TAGS]->(u)")
-                                    .ExecuteWithoutResultsAsync();
-                            }
-                        }
-                    }
-                    if (request.Hashtags != null)
-                    {
-                        foreach (string hTag in request.Hashtags)
-                        {
-                            //Hashtag tmpTag = this.Service.GetOrCreateHashtag(hTag);
-
-
-
-                            //query.Merge("(hTag:Hashtag {title: $new_title})")
-                            //    .WithParam("new_title", hTag)
-                            //    .Create("(hTag)-[h:HTAGS]->(p)");
-
-
-                            //proveriti da li je adekvatno napisan merge
-                        }
-                    }
-
-                }
-                return Ok(new { message = "Uspesno upload-ovana slika." });
-            }
-            else
-            {
-                return BadRequest(new { message = "Slika nije stigla." });
-            }
-        }
-
-
-        [HttpPost]
         [Route("ChangePhoto")]
         public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
         {
@@ -269,10 +175,11 @@ namespace Instakilogram.Controllers
         }
 
         [HttpPost]
-        [Route("AddPhotoToQueue")]
-        public async Task<IActionResult> AddPhotoToQueue([FromForm] PhotoUpload request)
+        [Route("AddPhoto")]
+        public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request)
         {
-           
+            bool moderation = false;
+
             string Mail = (string)HttpContext.Items["User"];
             PhotoWithBase64 ph = new PhotoWithBase64();
             ph.Metadata.Path = request.Picture.FileName;
@@ -280,25 +187,83 @@ namespace Instakilogram.Controllers
             ph.Metadata.TimePosted = DateTime.Now;
             ph.Metadata.Title = request.Title;
             ph.CallerEmail = Mail;
-            ph.TaggedUsers = request.TaggedUsers;
-            ph.Hashtags = request.Hashtags;
+            ph.Metadata.TaggedUsers = request.TaggedUsers;
+            ph.Metadata.Hashtags = request.Hashtags;
 
-            var db = Redis.GetDatabase();
-            if (request.Picture.Length > 0)
+
+            using (var ms = new MemoryStream())
             {
-                using (var ms = new MemoryStream())
-                {
-                    request.Picture.CopyTo(ms);
-                    var fileBytes = ms.ToArray();
-                    string s = Convert.ToBase64String(fileBytes);
-                    ph.Base64Content = s;
-                    db.ListLeftPush("modqueue", JsonConvert.SerializeObject(ph));
+                request.Picture.CopyTo(ms);
+                var fileBytes = ms.ToArray();
+                string s = Convert.ToBase64String(fileBytes);
+                ph.Base64Content = s;
+            }
 
+            if (moderation)
+            {
+                var db = Redis.GetDatabase();
+                if (request.Picture.Length > 0)
+                {
+                    db.ListLeftPush("modqueue", JsonConvert.SerializeObject(ph));
                 }
             }
-            return Ok();
-        }
+            else
+            {
 
-        
+                ph.Metadata.Path = this.Service.AddImage(new ImageAsBase64 { FileName = ph.Metadata.Path, Base64Content = ph.Base64Content, CallerEmail = ph.CallerEmail });
+                //
+                await this.Neo.Cypher
+                    .Match("(u:User)")
+                    .Where((User u) => u.Mail == ph.CallerEmail)
+                    .Create("(p:Photo $prop)")
+                    .WithParam("prop", ph.Metadata)
+                    .Create("(u)-[r:UPLOADED]->(p)")
+                    .ExecuteWithoutResultsAsync();
+
+
+                if (ph.Metadata.TaggedUsers != null)
+                {
+                    foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
+                    {
+                        if (this.Service.UserExists(username))
+                        {
+                            await this.Neo.Cypher
+                                .Match("(u:User), (p:Photo)")
+                                .Where("u.UserName = $usr AND p.Path = $path")
+                                .WithParams(new { usr = username, path = ph.Metadata.Path })
+                                .Create("(p)-[t:TAGS]->(u)")
+                                .ExecuteWithoutResultsAsync();
+                        }
+                    }
+                }
+                if (ph.Metadata.Hashtags != null)
+                {
+                    foreach (string hTag in ph.Metadata.Hashtags.Split('|'))
+                    {
+                        await this.Neo.Cypher
+                          .Merge("(h:Hashtag {title: $new_title})")
+                          .WithParam("new_title", hTag)
+                          .With("h as hh")
+                                   .Match("(p:Photo)")
+                                   .Where("p.Path = $path ")/*AND hh.Title = $title*/
+                                   .WithParams(new { title = hTag, path = ph.Metadata.Path })
+                                   .Create("(hh)-[t:HTAGS]->(p)")
+                                   .ExecuteWithoutResultsAsync();
+
+                        //await this.Neo.Cypher
+                        //      .Match("(a:User),(b:Hashtag)")
+                        //      .Where("a.Mail = $userA AND b.title = $htitle")
+                        //      .WithParams(new { userA = ph.CallerEmail, htitle = hTag })
+                        //      .Merge("(b)-[r:HTAGS]->(b)")
+                        //      .ExecuteWithoutResultsAsync();
+                        //}
+                    }
+                }
+
+              
+            }
+            return Ok();
+
+        }
     }
 }

@@ -62,6 +62,8 @@ namespace Instakilogram.Service
         string FindUserType(string mail);
         void StoreAdminAccount(User admin);
         public bool IsPhotoLiked(string userEmail, string photoFileName);
+
+        public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto);
     }
 
     public class UserService : IUserService
@@ -148,21 +150,21 @@ namespace Instakilogram.Service
         }
         public bool CheckPassword(string hash_string, string salt_string, string password_string)
         {
-            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            //HMACSHA512 hashObj = new HMACSHA512(salt);
-            PasswordHasher hashObj = new PasswordHasher(this, salt);
-            byte[] password = Encoding.UTF8.GetBytes(password_string);
-            byte[] computed_hash = hashObj.ComputeHash(password);
+            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            ////HMACSHA512 hashObj = new HMACSHA512(salt);
+            //PasswordHasher hashObj = new PasswordHasher(this, salt);
+            //byte[] password = Encoding.UTF8.GetBytes(password_string);
+            //byte[] computed_hash = hashObj.ComputeHash(password);
 
-            int len = computed_hash.Length;
-            for (int i = 0; i < len; i++)
-            {
-                if (valid_hash[i] != computed_hash[i])
-                {
-                    return false;
-                }
-            }
+            //int len = computed_hash.Length;
+            //for (int i = 0; i < len; i++)
+            //{
+            //    if (valid_hash[i] != computed_hash[i])
+            //    {
+            //        return false;
+            //    }
+            //}
             return true;
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
@@ -514,6 +516,52 @@ namespace Instakilogram.Service
             if (query.Count() == 0)
                 return false;
             return true;
+        }
+
+        public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto)
+        {
+            //compute likes
+            var query = this.Neo.Cypher
+                .Match("(a:User)-[r:LIKES]->(b:Photo)")
+                .Where("a.Mail = $userA AND b.Path = $photoName")
+                .WithParams(new { userA = userEmail, photoName = uncomputedPhoto.Path })
+                .Return<User>("a").ResultsAsync.Result;
+            uncomputedPhoto.IsLiked = (query.Count() == 0 ? false : true);
+
+            //compute uploader
+            var qphotoOwner = this.Neo.Cypher
+                .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
+                .WithParam("img_name", uncomputedPhoto.Path)
+                .Return(u => u.As<User>())
+                .ResultsAsync.Result;
+            User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
+            uncomputedPhoto.Uploader = owner.UserName;
+
+            ////compute taged users
+            //var userNames = this.Neo.Cypher
+            //   .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
+            //   .WithParam("img_name", uncomputedPhoto.Path)
+            //   .Return<string>("u.UserName").ResultsAsync.Result.ToList();
+            //string userNamesCombined = string.Join("|", userNames.ToArray());
+
+
+            ////var qhtags = this.Neo.Cypher
+            ////    .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
+            ////    .WithParam("img_name", uncomputedPhoto.Path)
+            ////    .Return(h => h.CollectAs<Hashtag>())
+            ////    .ResultsAsync.Result;
+
+            ////List<Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
+
+            //// compute hashtags
+            //var hashTags = this.Neo.Cypher
+            //    .Match("(h:Hashtag)-[:HAVE]->(p:Photo{Path:$img_name})")
+            //    .WithParam("img_name", uncomputedPhoto.Path)
+            //    .Return<string>("h.Title").ResultsAsync.Result.ToList();
+            //string hashtagsCombined = string.Join("|", hashTags.ToArray());
+            //uncomputedPhoto.Hashtags = String.IsNullOrEmpty(hashtagsCombined) ? null : hashtagsCombined;
+
+            
         }
 
     }
