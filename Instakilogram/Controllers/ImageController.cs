@@ -21,12 +21,14 @@ namespace Instakilogram.Controllers
     [ApiController]
     public class ImageController : Controller
     {
+        private readonly Moderation _moderation;
         private IUserService Service;
         private IGraphClient Neo;
         private IConnectionMultiplexer Redis;
 
-        public ImageController(IUserService service, IGraphClient gc, IConnectionMultiplexer redis)
+        public ImageController(IUserService service, IGraphClient gc, IConnectionMultiplexer redis, Moderation moderation)
         {
+            this._moderation = moderation;
             this.Service = service;
             this.Neo = gc;
             this.Redis = redis;
@@ -182,7 +184,7 @@ namespace Instakilogram.Controllers
         [Route("AddPhoto")]
         public async Task<IActionResult> AddPhoto([FromForm] PhotoUpload request)
         {
-            bool moderation = false;
+           
 
             string Mail = (string)HttpContext.Items["User"];
             PhotoWithBase64 ph = new PhotoWithBase64();
@@ -204,21 +206,22 @@ namespace Instakilogram.Controllers
                 ph.Base64Content = s;
             }
 
-            if (moderation)
+            if (_moderation.IsOn)
             {
                 var db = Redis.GetDatabase();
                 if (request.Picture.Length > 0)
                 {
                     db.ListLeftPush("modqueue", JsonConvert.SerializeObject(ph));
                 }
+                return Ok("Moderation is on");
             }
             else
             {
 
-               this.Service.AddImage(ph);
-             
+               await this.Service.AddImage(ph);
+                return Ok("Moderation is off");
             }
-            return Ok();
+            
 
         }
     }

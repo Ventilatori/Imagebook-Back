@@ -37,7 +37,25 @@ namespace Instakilogram.Controllers
         [Route("GetUnapprovedImage")]
         public async Task<IActionResult> GetUnapprovedPhotos()
         {
- 
+            //string Mail = (string)HttpContext.Items["User"];
+
+            //var user_query = await this.Neo.Cypher
+            //   .Match("(a:User)")
+            //   .Where((User a) => a.Mail == Mail)
+            //   .Return(a => a.As<User>())
+            //   .ResultsAsync;
+
+            //User user = user_query.Count() == 0 ? null : user_query.Single();
+
+
+            //await this.Neo.Cypher
+            //   .Match("(a:User)")
+            //   .Where("a.Mail = $userA")
+            //   .WithParams(new { userA = Mail });
+
+            //User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
+
+
             var db = this.Redis.GetDatabase();
             PhotoWithBase64 pic = new PhotoWithBase64();
             if (db.KeyExists("modqueue"))

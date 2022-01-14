@@ -14,6 +14,7 @@ using Neo4j.Driver;
 using Neo4jClient;
 using System;
 using StackExchange.Redis;
+using Instakilogram.Service;
 
 namespace Instakilogram
 {
@@ -48,6 +49,7 @@ namespace Instakilogram
 
             services.Configure<URLs>(Configuration.GetSection("URLs"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+      
             //services.Configure<Neo4jConfig>(Configuration.GetSection("NeO4jConnectionSettings"));
             services.AddScoped<IUserService, UserService>();
 
@@ -57,7 +59,7 @@ namespace Instakilogram
             var client = new BoltGraphClient(new Uri("bolt://localhost:7687"), "neo4j", "neo");
             client.ConnectAsync();
             services.AddSingleton<IGraphClient>(client);
-
+            services.AddSingleton(Configuration.GetSection("Moderation").Get<Moderation>());
             //konekcija na redis
 
             var multiplexer = ConnectionMultiplexer.Connect("localhost"); //port:6379
