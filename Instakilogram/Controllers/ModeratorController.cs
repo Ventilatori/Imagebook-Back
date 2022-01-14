@@ -56,65 +56,10 @@ namespace Instakilogram.Controllers
         {
             foreach (PhotoWithBase64 ph in photos)
             {
+                string path = await this.Service.AddImage(ph);
 
-                //add sliku u fajlsistem
-                ImageAsBase64 picture = new ImageAsBase64 { Base64Content = ph.Base64Content,
-                    CallerEmail = ph.CallerEmail, FileName = ph.Metadata.Path };
-                string path = this.Service.AddImage(picture);
-                //
-                await this.Neo.Cypher
-                    .Match("(u:User)")
-                    .Where((User u) => u.Mail == ph.CallerEmail)
-                    .Create("(p:Photo $prop)")
-                    .WithParam("prop", ph.Metadata)
-                    .Create("(u)-[r:UPLOADED]->(p)")
-                    .ExecuteWithoutResultsAsync();
-
-                if (!String.IsNullOrEmpty(ph.Metadata.Description))
-                {
-                    this.Neo.Cypher
-                   .Match("(p:Photo)")
-                   .Where((Photo p) => p.Path == ph.Metadata.Path)
-                   .Set("p.Description = {desc}")
-                   .WithParams(new { desc = ph.Metadata.Description });
-                }
-                if (ph.Metadata.TaggedUsers != null)
-                {
-                    foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
-                    {
-                        if (this.Service.UserExists(username))
-                        {
-                            await this.Neo.Cypher
-                                .Match("(u:User)")
-                                .Where((User u) => u.UserName == username)
-                                .Create("(p)-[t:TAGS]->(u)")
-                                .ExecuteWithoutResultsAsync();
-                        }
-                    }
-                }
-                if (ph.Metadata.Hashtags != null)
-                {
-                    foreach (string hTag in ph.Metadata.Hashtags.Split('|'))
-                    {
-                      await this.Neo.Cypher
-                        .Merge("(h:Hashtag {title: $new_title})")
-                        .WithParam("new_title", hTag)
-                        .Match("(a:User),(b:Hashtag)")
-                        .Where("a.Mail = $userA AND b.title = $htitle")
-                        .WithParams(new { userA = ph.CallerEmail, htitle = hTag })
-                        .Merge("(a)-[r:HTAGS]->(b)")
-                        .ExecuteWithoutResultsAsync();
-                    }
-                }
             }
             return Ok();
-
-           
-           
-
         }
-
-         
-        }
-    
+    }
 }

@@ -137,9 +137,9 @@ namespace Instakilogram.Controllers
                 User user = query.Return(n => n.As<User>())
                     .ResultsAsync.Result.ToList().Single();
                 this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
-                string picture_name = this.Service.AddImage(picture, IUserService.ImageType.Profile);
+                //string picture_name = this.Service.AddImage(picture, IUserService.ImageType.Profile);
                 await query.Set("n.profilePicture: $new_profile_picture")
-                    .WithParam("new_profile_picture", picture_name)
+                    //.WithParam("new_profile_picture", picture_name)
                     .ExecuteWithoutResultsAsync();
             }
 

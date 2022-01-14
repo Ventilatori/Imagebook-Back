@@ -8,10 +8,7 @@ namespace Instakilogram.RequestResponse
 {
     public class PhotoWithBase64
     {
-        public PhotoWithBase64()
-        {
-            Metadata = new Photo();
-        }
+      
         public Photo Metadata { get; set; }
         public string Base64Content { get; set; }
 

@@ -182,6 +182,7 @@ namespace Instakilogram.Controllers
 
             string Mail = (string)HttpContext.Items["User"];
             PhotoWithBase64 ph = new PhotoWithBase64();
+            ph.Metadata = new Photo();
             ph.Metadata.Path = request.Picture.FileName;
             ph.Metadata.Description = request.Description;
             ph.Metadata.TimePosted = DateTime.Now;
@@ -210,57 +211,8 @@ namespace Instakilogram.Controllers
             else
             {
 
-                ph.Metadata.Path = this.Service.AddImage(new ImageAsBase64 { FileName = ph.Metadata.Path, Base64Content = ph.Base64Content, CallerEmail = ph.CallerEmail });
-                //
-                await this.Neo.Cypher
-                    .Match("(u:User)")
-                    .Where((User u) => u.Mail == ph.CallerEmail)
-                    .Create("(p:Photo $prop)")
-                    .WithParam("prop", ph.Metadata)
-                    .Create("(u)-[r:UPLOADED]->(p)")
-                    .ExecuteWithoutResultsAsync();
-
-
-                if (ph.Metadata.TaggedUsers != null)
-                {
-                    foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
-                    {
-                        if (this.Service.UserExists(username))
-                        {
-                            await this.Neo.Cypher
-                                .Match("(u:User), (p:Photo)")
-                                .Where("u.UserName = $usr AND p.Path = $path")
-                                .WithParams(new { usr = username, path = ph.Metadata.Path })
-                                .Create("(p)-[t:TAGS]->(u)")
-                                .ExecuteWithoutResultsAsync();
-                        }
-                    }
-                }
-                if (ph.Metadata.Hashtags != null)
-                {
-                    foreach (string hTag in ph.Metadata.Hashtags.Split('|'))
-                    {
-                        await this.Neo.Cypher
-                          .Merge("(h:Hashtag {title: $new_title})")
-                          .WithParam("new_title", hTag)
-                          .With("h as hh")
-                                   .Match("(p:Photo)")
-                                   .Where("p.Path = $path ")/*AND hh.Title = $title*/
-                                   .WithParams(new { title = hTag, path = ph.Metadata.Path })
-                                   .Create("(hh)-[t:HTAGS]->(p)")
-                                   .ExecuteWithoutResultsAsync();
-
-                        //await this.Neo.Cypher
-                        //      .Match("(a:User),(b:Hashtag)")
-                        //      .Where("a.Mail = $userA AND b.title = $htitle")
-                        //      .WithParams(new { userA = ph.CallerEmail, htitle = hTag })
-                        //      .Merge("(b)-[r:HTAGS]->(b)")
-                        //      .ExecuteWithoutResultsAsync();
-                        //}
-                    }
-                }
-
-              
+               this.Service.AddImage(ph);
+             
             }
             return Ok();
 

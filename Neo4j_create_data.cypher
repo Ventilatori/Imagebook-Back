@@ -8,8 +8,8 @@ CREATE
 (sunce:Photo{Path:"mrk3", TimePosted:datetime("2017-06-02T10:23:32.122+0100"), Description: "SUNCEE"}),
 (oblak:Photo{Path:"mrk4", TimePosted:datetime("2018-06-02T10:23:32.122+0100"), Description: "OBLAKK"}),
 
-(nature:Hashtag{Title:"Nature"}),
-(sky:Hashtag{Title:"Sky"}),
+(nature:Hashtag{title:"Nature"}),
+(sky:Hashtag{title:"Sky"}),
 
 (clyde56)-[:UPLOADED]->(ker),
 (clyde56)-[:UPLOADED]->(drvo),

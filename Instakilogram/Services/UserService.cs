@@ -36,7 +36,7 @@ namespace Instakilogram.Service
             Standard,
             Admin
         };
-        string AddImage(ImageAsBase64 picture, ImageType img_type = ImageType.Standard);
+        Task<string> AddImage(PhotoWithBase64 ph, ImageType img_type = ImageType.Standard);
         bool DeleteImage(string picture_path, ImageType img_type = ImageType.Standard);
         bool ImageCheck(string mail, string picture_path);
         int PinGenerator();
@@ -63,7 +63,9 @@ namespace Instakilogram.Service
         void StoreAdminAccount(User admin);
         public bool IsPhotoLiked(string userEmail, string photoFileName);
 
+        public Task<bool> AddImageToNeo(PhotoWithBase64 ph);
         public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto);
+
     }
 
     public class UserService : IUserService
@@ -81,22 +83,26 @@ namespace Instakilogram.Service
             this.Environment = environment;
             this.Redis = mux;
         }
-        public string AddImage(ImageAsBase64 picture, IUserService.ImageType img_type = IUserService.ImageType.Standard)
+        public async Task<String> AddImage(PhotoWithBase64 ph, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
+           
+            var picture = new ImageAsBase64 { FileName = ph.Metadata.Path, Base64Content = ph.Base64Content, CallerEmail = ph.CallerEmail };
             string folderPath = "Images/"+img_type.ToString();
             string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
-            string file_name; //
             if (picture != null)
             {
-                file_name = Guid.NewGuid().ToString() + "_" + picture.FileName;
-                string filePath = Path.Combine(uploadsFolder, file_name);
+                ph.Metadata.Path = Guid.NewGuid().ToString() + "_" + picture.FileName;
+                string filePath = Path.Combine(uploadsFolder, ph.Metadata.Path);
                 File.WriteAllBytes(filePath, Convert.FromBase64String(picture.Base64Content));
             }
             else
             {
-                file_name = "default.png";
+                ph.Metadata.Path = "default.png";
             }
-            return file_name;
+
+            await this.AddImageToNeo(ph);
+
+            return ph.Metadata.Path;
         }
         public bool DeleteImage(string picture_name, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
@@ -299,6 +305,7 @@ namespace Instakilogram.Service
         }
         public string ApproveAccount(string key)
         {
+
             string link = null;
             var db = this.Redis.GetDatabase();
             if(db.KeyExists(key))
@@ -311,8 +318,13 @@ namespace Instakilogram.Service
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
                     //var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
-                    string picture = this.AddImage(pic, IUserService.ImageType.Profile);
-                    user.ProfilePicture = picture;
+
+
+
+                    //dusan: ovo dopravi!
+                    //string picture = this.AddImage(new PhotoWithBase64 {  { Path = pic.FileName}, Base64Content = pic.Base64Content, CallerEmail = user.Mail }, IUserService.ImageType.Profile);
+              
+                    //user.ProfilePicture = picture;
                     db.KeyDelete(img_key);
                 }
 
@@ -518,6 +530,49 @@ namespace Instakilogram.Service
             return true;
         }
 
+        public async Task<bool> AddImageToNeo(PhotoWithBase64 ph)
+        {
+            await this.Neo.Cypher
+                    .Match("(u:User)")
+                    .Where((User u) => u.Mail == ph.CallerEmail)
+                    .Create("(p:Photo $prop)")
+                    .WithParam("prop", ph.Metadata)
+                    .Create("(u)-[r:UPLOADED]->(p)")
+                    .ExecuteWithoutResultsAsync();
+
+
+            if (ph.Metadata.TaggedUsers != null)
+            {
+                foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
+                {
+                    if (this.UserExists(username))
+                    {
+                        await this.Neo.Cypher
+                            .Match("(u:User), (p:Photo)")
+                            .Where("u.UserName = $usr AND p.Path = $path")
+                            .WithParams(new { usr = username, path = ph.Metadata.Path })
+                            .Create("(p)-[t:TAGS]->(u)")
+                            .ExecuteWithoutResultsAsync();
+                    }
+                }
+            }
+            if (ph.Metadata.Hashtags != null)
+            {
+                foreach (string hTag in ph.Metadata.Hashtags.Split('|'))
+                {
+                    await this.Neo.Cypher
+                      .Merge("(h:Hashtag {Title: $new_title})")
+                      .WithParam("new_title", hTag)
+                      .With("h as hh")
+                               .Match("(p:Photo)")
+                               .Where("p.Path = $path ")/*AND hh.Title = $title*/
+                               .WithParams(new { title = hTag, path = ph.Metadata.Path })
+                               .Create("(hh)-[s:HTAGS]->(p)")
+                               .ExecuteWithoutResultsAsync();
+                }
+            }
+            return true;
+        }
         public void ComputePhotoProp(string userEmail, ref Photo uncomputedPhoto)
         {
             //compute likes
