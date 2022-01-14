@@ -64,7 +64,7 @@ namespace Instakilogram.Service
         public bool IsPhotoLiked(string userEmail, string photoFileName);
 
         public Task<bool> AddImageToNeo(PhotoWithBase64 ph);
-        public void ComputePhotoProp(string userEmail, ref PhotoWithBase64 ph);
+        public Photo ComputePhotoProp(string userEmail,  Photo ph);
 
     }
 
@@ -573,25 +573,27 @@ namespace Instakilogram.Service
             }
             return true;
         }
-        public void ComputePhotoProp(string userEmail, ref PhotoWithBase64 ph)
+        public Photo ComputePhotoProp(string userEmail, Photo ph)
         {
-            var uncomputedPhoto = ph.Metadata;
+  
             //compute is liked 
             var query = this.Neo.Cypher
                 .Match("(a:User)-[r:LIKES]->(b:Photo)")
                 .Where("a.Mail = $userA AND b.Path = $photoName")
-                .WithParams(new { userA = userEmail, photoName = uncomputedPhoto.Path })
+                .WithParams(new { userA = userEmail, photoName = ph.Path })
                 .Return<User>("a").ResultsAsync.Result;
-            uncomputedPhoto.IsLiked = (query.Count() == 0 ? false : true);
+            ph.IsLiked = (query.Count() == 0 ? false : true);
 
             //compute uploader
             var qphotoOwner = this.Neo.Cypher
                 .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
-                .WithParam("img_name", uncomputedPhoto.Path)
+                .WithParam("img_name", ph.Path)
                 .Return(u => u.As<User>())
                 .ResultsAsync.Result;
             User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
-            uncomputedPhoto.Uploader = owner.UserName;
+            ph.Uploader = owner.UserName;
+            return ph;
+
 
             ////compute taged users
             //var userNames = this.Neo.Cypher

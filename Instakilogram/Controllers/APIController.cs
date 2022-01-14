@@ -58,7 +58,7 @@ namespace Instakilogram.Controllers
             {
 
                 photo = qphoto.Single();
-                if (photo != null) photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
+                if (photo != null)  photo = Service.ComputePhotoProp(Mail, photo);
             }
 
 
@@ -113,12 +113,19 @@ namespace Instakilogram.Controllers
                     .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
                     .WithParam("nameParam", u.UserName)
                     .Return<Photo>("p").ResultsAsync;
-                foreach (Photo pp in phList)
-                    if (Service.IsFromLast24h(pp.TimePosted))
+
+                var photolist = phList.ToList<Photo>();
+                for (int i = 0; i < photolist.Count(); i++)
+                {
+                    if (Service.IsFromLast24h(photolist[i].TimePosted))
                     {
-                        pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path);
-                        photos.Add(new { pp,  u });
+                        photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
+                        var ph = photolist[i];
+                        photos.Add(new { ph , u });
                     }
+                }
+                
+                    
             }
             return Ok(photos);
         }
@@ -289,9 +296,13 @@ namespace Instakilogram.Controllers
 
             if (uploadedPhotos != null)
             {
+                for (int i = 0; i < uploadedPhotos.Count(); i++)
+                {
+                    uploadedPhotos[i] = Service.ComputePhotoProp(Mail, uploadedPhotos[i]);
+                }
                 foreach (Photo pp in uploadedPhotos)
                 {
-                    pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path);
+                   
                 }
             }
 
@@ -305,10 +316,11 @@ namespace Instakilogram.Controllers
 
             if (taggedOnPhotos != null)
             {
-                foreach (Photo tOP in taggedOnPhotos)
+                for (int i = 0; i < taggedOnPhotos.Count(); i++)
                 {
-                    tOP.IsLiked = Service.IsPhotoLiked(Mail, tOP.Path); ;
+                    taggedOnPhotos[i] = Service.ComputePhotoProp(Mail, taggedOnPhotos[i]); ;
                 }
+             
             }
 
             return Ok(new GetUserResponse
