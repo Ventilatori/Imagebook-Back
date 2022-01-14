@@ -7,6 +7,7 @@ namespace Instakilogram.Models
 {
     public class Photo
     {
+        public string Title { get; set; }
         public string Path { get; set; }
         public DateTime TimePosted { get; set; }
         public string? Description { get; set; }

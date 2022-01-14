@@ -57,9 +57,10 @@ namespace Instakilogram.Controllers
                 string path = this.Service.AddImage(picture);
                 Photo photo = new Photo
                 {
+                    Title = request.Title,
                     Path = path,
                     TimePosted = DateTime.Now,
-                    Description = null
+                    Description = request.Title
                 };
 
                 await this.Neo.Cypher
@@ -277,6 +278,7 @@ namespace Instakilogram.Controllers
             ph.Metadata.Path = request.Picture.FileName;
             ph.Metadata.Description = request.Description;
             ph.Metadata.TimePosted = DateTime.Now;
+            ph.Metadata.Title = request.Title;
             ph.CallerEmail = Mail;
             ph.TaggedUsers = request.TaggedUsers;
             ph.Hashtags = request.Hashtags;

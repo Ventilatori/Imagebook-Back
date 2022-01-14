@@ -11,6 +11,7 @@ namespace Instakilogram.RequestResponse
     {
         [Required]
         public IFormFile Picture { get; set; }
+        public string Title { get; set; }
         public string? Description { get; set; }
         public List<string>? TaggedUsers { get; set; }
         public List<string>? Hashtags { get; set; }        
