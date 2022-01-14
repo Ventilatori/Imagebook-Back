@@ -35,36 +35,47 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetPhoto")]
-        public async Task<IActionResult> GetPhoto([FromBody] string picture_url)
+        [Route("GetPhoto/{photoName}")]
+        public async Task<IActionResult> GetPhoto(string photoName)
         {
-            string picture = this.Service.ExtractPictureName(picture_url);
+            string picture = photoName;//this.Service.ExtractPictureName(photoName);
 
-            Photo photo = this.Neo.Cypher
+            var qphoto = await this.Neo.Cypher
                 .Match("(p:Photo)")
                 .Where((Photo p) => p.Path == picture)
                 .Return(p => p.As<Photo>())
-                .ResultsAsync.Result.ToList().Single();
+                .ResultsAsync;
 
-            User photoOwner = this.Neo.Cypher
-                .Match("(u:User)-[:UPLOADED]->(p:Photo {path: $img_name})")
+            Photo photo = qphoto.Count() == 0 ? null : qphoto.Single();
+
+            var qphotoOwner = await this.Neo.Cypher
+                .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
                 .WithParam("img_name", picture)
                 .Return(u => u.As<User>())
-                .ResultsAsync.Result.ToList().Single();
+                .ResultsAsync;
 
-            List<string> tUsers = this.Neo.Cypher
-               .Match("(u:User)<-[:TAGS]-(p:Photo {path: $img_name})")
+            User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
+
+
+
+            var qtusers = await this.Neo.Cypher
+               .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
                .WithParam("img_name", picture)
-               .Return(u => u.As<User>().UserName)
-               .ResultsAsync.Result.ToList();
+               .Return(u => u.CollectAs<User>())
+               .ResultsAsync;
 
-            List<Hashtag> htags = this.Neo.Cypher
-                .Match("(h:Hashtag)-[:HAVE]->(p:Photo {path: $img_name})")
+            List<User> tUsers = qtusers.Count() == 0 ? null : qtusers.ToList().Single().ToList();
+
+
+            var qhtags = await this.Neo.Cypher
+                .Match("(h:Hashtag)-[:HAVE]->(p:Photo{Path:$img_name})")
                 .WithParam("img_name", picture)
-                .Return(h => h.As<Hashtag>())
-                .ResultsAsync.Result.ToList();
+                .Return(h => h.CollectAs<Hashtag>())
+                .ResultsAsync;
 
-            return Ok(new { Photo = photo, User = photoOwner, Hashtags = htags, TaggedUsers = tUsers });
+            List <Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
+
+            return Ok(new { Photo = photo, User = owner, Hashtags = htags, TaggedUsers = tUsers });
 
         }
 
