@@ -69,7 +69,7 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetFeed24h")]
+        [Route("GetFeed24h")] //return photo and user in list 
         public async Task<IActionResult> GetFeed24h()
         {
             string Mail = (string)HttpContext.Items["User"];
@@ -79,7 +79,7 @@ namespace Instakilogram.Controllers
                 .Where((User a) => a.Mail == Mail)
                 .Return<User>("b").ResultsAsync;
 
-            var photos = new List<Photo>();
+            var photos = new List<dynamic>();
             foreach (User u in usersFollowed)
             {
 
@@ -90,7 +90,7 @@ namespace Instakilogram.Controllers
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
                     if (Service.IsFromLast24h(pp.TimePosted))
-                        photos.Add(pp);
+                        photos.Add(new { pp, u});
             }
             return Ok(photos);
         }
