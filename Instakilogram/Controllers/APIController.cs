@@ -58,7 +58,7 @@ namespace Instakilogram.Controllers
             {
                 
                 photo = qphoto.Single();
-                photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
+                if(photo != null) photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
             }
     
 
@@ -286,9 +286,13 @@ namespace Instakilogram.Controllers
                .Return(p => p.CollectAs<Photo>())
                .ResultsAsync;
             List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null :photos_query.ToList().Single().ToList();
-            foreach (Photo pp in uploadedPhotos)
+
+            if (uploadedPhotos != null)
             {
-                pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path); ;
+                foreach (Photo pp in uploadedPhotos)
+                {
+                    pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path); ;
+                }
             }
 
             var taggedOnPhotos_query = await this.Neo.Cypher
@@ -299,9 +303,12 @@ namespace Instakilogram.Controllers
                 .ResultsAsync;
             List<Photo> taggedOnPhotos = taggedOnPhotos_query.Count() == 0 ? null : taggedOnPhotos_query.ToList().Single().ToList();
 
-            foreach (Photo tOP in taggedOnPhotos)
-            {
-                tOP.IsLiked = Service.IsPhotoLiked(Mail, tOP.Path); ;
+            if(taggedOnPhotos!=null)
+            { 
+                foreach (Photo tOP in taggedOnPhotos)
+                {
+                    tOP.IsLiked = Service.IsPhotoLiked(Mail, tOP.Path); ;
+                }
             }
 
             return Ok(new GetUserResponse
