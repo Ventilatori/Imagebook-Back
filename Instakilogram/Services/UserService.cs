@@ -79,7 +79,7 @@ namespace Instakilogram.Service
         }
         public string AddImage(ImageAsBase64 picture, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
-            string folderPath = "Images\\"+img_type.ToString();
+            string folderPath = "Images/"+img_type.ToString();
             string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
             string file_name; //
             if (picture != null)
@@ -98,7 +98,7 @@ namespace Instakilogram.Service
         {
             if (!String.Equals(picture_name, "default.png"))
             {
-                string folderPath = "Images\\"+img_type.ToString();
+                string folderPath = "Images/"+img_type.ToString();
                 
                 string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
                 string filePath = Path.Combine(uploadsFolder, picture_name);
