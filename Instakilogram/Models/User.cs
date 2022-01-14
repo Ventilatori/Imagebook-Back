@@ -24,5 +24,8 @@ namespace Instakilogram.Models
         [JsonIgnore]
         public int? PIN { get; set; }
 
+        [JsonIgnore]
+        public bool IsBeingFollowed { get; set; }
+
     }
 }

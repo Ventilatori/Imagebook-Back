@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Instakilogram.Models
@@ -12,5 +13,6 @@ namespace Instakilogram.Models
         public DateTime TimePosted { get; set; }
         public string? Description { get; set; }
         public int NumberOfLikes { get; set; }
+        public bool? IsLiked { get; set; }
     }
 }

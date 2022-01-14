@@ -38,6 +38,7 @@ namespace Instakilogram.Controllers
         [Route("GetPhoto/{photoName}")]
         public async Task<IActionResult> GetPhoto(string photoName)
         {
+            string Mail = (string)HttpContext.Items["User"];
             string picture = photoName;//this.Service.ExtractPictureName(photoName);
 
             var qphoto = await this.Neo.Cypher
@@ -46,7 +47,20 @@ namespace Instakilogram.Controllers
                 .Return(p => p.As<Photo>())
                 .ResultsAsync;
 
-            Photo photo = qphoto.Count() == 0 ? null : qphoto.Single();
+            //Photo photo = qphoto.Count() == 0 ? null : qphoto.Single();
+            Photo photo;
+
+            if (qphoto.Count() == 0)
+            {
+                photo = null;
+            }
+            else
+            {
+                
+                photo = qphoto.Single();
+                photo.IsLiked = Service.IsPhotoLiked(Mail, photo.Path);
+            }
+    
 
             var qphotoOwner = await this.Neo.Cypher
                 .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
@@ -101,7 +115,10 @@ namespace Instakilogram.Controllers
                     .Return<Photo>("p").ResultsAsync;
                 foreach (Photo pp in phList)
                     if (Service.IsFromLast24h(pp.TimePosted))
-                        photos.Add(new { pp, u});
+                    {
+                        pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path);
+                        photos.Add(new { pp, u });
+                    }
             }
             return Ok(photos);
         }
@@ -251,6 +268,8 @@ namespace Instakilogram.Controllers
         [Route("GetUser/{userName}")]
         public async Task<IActionResult> GetUser(string userName)
         {
+            string Mail = (string)HttpContext.Items["User"];
+
             var user_query = await this.Neo.Cypher
                 .Match("(a:User)")
                 .Where((User a) => a.UserName == userName)
@@ -267,6 +286,10 @@ namespace Instakilogram.Controllers
                .Return(p => p.CollectAs<Photo>())
                .ResultsAsync;
             List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null :photos_query.ToList().Single().ToList();
+            foreach (Photo pp in uploadedPhotos)
+            {
+                pp.IsLiked = Service.IsPhotoLiked(Mail, pp.Path); ;
+            }
 
             var taggedOnPhotos_query = await this.Neo.Cypher
                 .Match("(p:Photo)-[:TAGS]->(a:User{UserName:$nameParam})")
@@ -275,6 +298,11 @@ namespace Instakilogram.Controllers
                 .Return(p => p.CollectAs<Photo>())
                 .ResultsAsync;
             List<Photo> taggedOnPhotos = taggedOnPhotos_query.Count() == 0 ? null : taggedOnPhotos_query.ToList().Single().ToList();
+
+            foreach (Photo tOP in taggedOnPhotos)
+            {
+                tOP.IsLiked = Service.IsPhotoLiked(Mail, tOP.Path); ;
+            }
 
             return Ok(new GetUserResponse
             {

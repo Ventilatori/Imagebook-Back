@@ -15,6 +15,7 @@ using StackExchange.Redis;
 using Newtonsoft.Json;
 using Instakilogram.RequestResponse;
 using Instakilogram.Services;
+using System.Threading.Tasks;
 
 namespace Instakilogram.Service
 {
@@ -60,6 +61,7 @@ namespace Instakilogram.Service
         bool IsFromLast24h(DateTime timeForChecking);
         string FindUserType(string mail);
         void StoreAdminAccount(User admin);
+        public bool IsPhotoLiked(string userEmail, string photoFileName);
     }
 
     public class UserService : IUserService
@@ -501,7 +503,18 @@ namespace Instakilogram.Service
                 .ExecuteWithoutResultsAsync();
         }
 
-        
+        public bool IsPhotoLiked(string userEmail, string photoFileName)
+        {
+            var query =  this.Neo.Cypher
+             .Match("(a:User)-[r:LIKES]->(b:Photo)")
+             .Where("a.Mail = $userA AND b.Path = $photoName")
+             .WithParams(new { userA = userEmail, photoName = photoFileName })
+              .Return<User>("a").ResultsAsync.Result;
+
+            if (query.Count() == 0)
+                return false;
+            return true;
+        }
 
     }
 }
