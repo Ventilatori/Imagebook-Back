@@ -20,6 +20,7 @@ using StackExchange.Redis;
 
 namespace Instakilogram.Controllers
 {
+
     [ApiController]
     [Route("[controller]")]
     public class APIController : ControllerBase
@@ -248,13 +249,20 @@ namespace Instakilogram.Controllers
                 {
                     if (!myFriendList.Contains(friendOfFriend))
                     {
-                        peopleToRecommend[friendOfFriend]++;
+                        int currentCount;
+
+                       peopleToRecommend.TryGetValue(friendOfFriend, out currentCount);
+
+                        peopleToRecommend[friendOfFriend] = currentCount + 1;
+              
                     }
                 }
             }
 
-            var matches = peopleToRecommend.Where(kvp => kvp.Value > minimumConnectedPeople);
-            //compute isfollowed
+            var matchedKvp = peopleToRecommend.Where(kvp => kvp.Value >= minimumConnectedPeople);
+            var matches = (from kvp in matchedKvp select kvp.Key).ToList();
+
+
             return Ok(matches);
         }
 
@@ -436,7 +444,7 @@ namespace Instakilogram.Controllers
 
             var matchingHtags = await this.Neo.Cypher
                 .Match("(h:Hashtag)")
-                .Where((Hashtag h) => h.Title.Contains(title))
+                .Where((Hashtag h) => h.Title.ToLower().Contains(title.ToLower()))
                 .Return<Hashtag>("h").ResultsAsync;
 
             var matchingHtagsC = matchingHtags.ToList<Hashtag>();
@@ -447,12 +455,6 @@ namespace Instakilogram.Controllers
             return Ok(matchingHtagsC);
 
         }
-    }
-    public static class StringExtensions
-    {
-        public static bool Contains(this string source, string toCheck, StringComparison comp)
-        {
-            return source?.IndexOf(toCheck, comp) >= 0;
-        }
-    }
+
+    } 
 }

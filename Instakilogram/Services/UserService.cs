@@ -68,7 +68,7 @@ namespace Instakilogram.Service
         public User ComputeUserFollowB(string callerMail, User userB);
         public Hashtag ComputeUserFollowH(string callerMail, Hashtag ha);
         public Task<List<Photo>> GetHtagImages(string Mail, string title);
-
+        public bool ContainsTotal(string s1, string s2);
     }
 
     public class UserService : IUserService
@@ -673,6 +673,10 @@ namespace Instakilogram.Service
                 }
             }
             return htagPhotos;
+        }
+        public bool ContainsTotal(string s1, string s2)
+        {
+            return s1.IndexOf(s2, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }
