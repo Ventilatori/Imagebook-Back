@@ -42,8 +42,7 @@ namespace Instakilogram.Service
         int PinGenerator();
         void SavePin(string mail, int PIN);
         bool CheckPin(string mail, int new_pin);
-        bool 
-            (string hash_string, string salt_string, string password_string);
+        public bool CheckPassword(string hash_string, string salt_string, string password_string);
         void PasswordHash(out string hash_string, out string salt_string, string password_string);
         void SendMail(User user, MailType type);
         bool UserExists(string new_user_name, string new_mail = "");
@@ -303,7 +302,9 @@ namespace Instakilogram.Service
 
                     }
                 }
-              
+                //
+                //string img_string = JsonConvert.SerializeObject(Picture);
+                //db.StringSetAsync(user.UserName + "Profile", img_string, t);
             }
 
             this.SendMail(user, IUserService.MailType.Verify);
@@ -322,7 +323,7 @@ namespace Instakilogram.Service
                 {
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
-             
+                    
                     db.KeyDelete(img_key);
                 }
 
@@ -390,7 +391,13 @@ namespace Instakilogram.Service
 
             foreach (Hashtag hashtag in hash_list)
             {
-    
+                //koriscenjem cypher f-je exists(), proveriti da li relacija uopste postoji i direktno obrisati hashtag sa svim njegovim granama
+                //jednom recju odraditi sve u 1 naredbi (query-ju)
+
+                //this.Neo.Cypher
+                //    .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
+                //    .WithParam("val", hashtag.Title)
+                //    .Where()
 
                 List<Photo> photos = this.Neo.Cypher
                     .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
@@ -584,7 +591,6 @@ namespace Instakilogram.Service
             User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
             ph.Uploader = owner.UserName;
             return ph;
-
 
         }
 
