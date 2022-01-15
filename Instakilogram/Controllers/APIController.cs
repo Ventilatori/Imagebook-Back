@@ -416,7 +416,7 @@ namespace Instakilogram.Controllers
            
               .Return<Photo>("a")
               .OrderBy("a.NumberOfLikes DESC")
-              .Limit(10).ResultsAsync;
+              .Limit(12).ResultsAsync;
 
             var photolist = phList.ToList<Photo>();
             for (int i = 0; i < photolist.Count(); i++)
@@ -426,6 +426,26 @@ namespace Instakilogram.Controllers
 
 
             return Ok(phList);
+        }
+
+        [HttpGet]
+        [Route("SearchHtag/{title}")]
+        public async Task<IActionResult> SearchHtag(string title)
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+            var matchingHtags = await this.Neo.Cypher
+                .Match("(h:Hashtag)")
+                .Where((Hashtag h) => h.Title.Contains(title))
+                .Return<Hashtag>("h").ResultsAsync;
+
+            var matchingHtagsC = matchingHtags.ToList<Hashtag>();
+            for (int i = 0; i < matchingHtagsC.Count(); i++)
+            {
+                matchingHtagsC[i] = Service.ComputeUserFollowH(Mail, matchingHtagsC[i]);
+            }
+            return Ok(matchingHtagsC);
+
         }
     }
 }

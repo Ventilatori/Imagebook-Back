@@ -66,6 +66,7 @@ namespace Instakilogram.Service
         public Task<bool> AddImageToNeo(PhotoWithBase64 ph);
         public Photo ComputePhotoProp(string userEmail, Photo ph);
         public User ComputeUserFollowB(string callerMail, User userB);
+        public Hashtag ComputeUserFollowH(string callerMail, Hashtag ha);
         public Task<List<Photo>> GetHtagImages(string Mail, string title);
 
     }
@@ -645,9 +646,9 @@ namespace Instakilogram.Service
         {
             var query = this.Neo.Cypher
                 .Match("(a:User)-[r:FOLLOWS]->(h:Hashtag)")
-                .Where("a.Mail = $userA AND h.UserName = $htitle")
+                .Where("a.Mail = $userA AND h.Title = $htitle")
                 .WithParams(new { userA = callerMail, htitle = ha.Title })
-                .Return<User>("b").ResultsAsync.Result;
+                .Return<User>("a").ResultsAsync.Result;
 
            ha.IsFollowed = (query.Count() == 0 ? false : true);
             return ha;
