@@ -16,7 +16,7 @@ using StackExchange.Redis;
 
 namespace Instakilogram.Controllers
 {
-    [Auth]
+    //[Auth]
     [Route("[controller]")]
     [ApiController]
     public class ImageController : Controller
@@ -197,31 +197,22 @@ namespace Instakilogram.Controllers
         [Route("DeletePhoto/{filename}")]
         public async Task<IActionResult> DeletePhoto(string filename)
         {
+
             string picture_url = "";
             string mail = (string)HttpContext.Items["User"];
-            string picture_path = this.Service.ExtractPictureName(picture_url);
+            string picture_path = filename;
 
-            if (!this.Service.ImageCheck(mail, picture_path))
-            {
-                return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
-            }
-
-            this.Service.UpdateHashtags(picture_path);
+            //if (!this.Service.ImageCheck(mail, picture_path))
+            //{
+            //    return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
+            //}
 
             await this.Neo.Cypher
-                .Match("()-[r1]->(p:Photo {path: $photo_path}), (p:Photo)-[r2]->()")
-                .WithParam("photo_path", picture_path)
-                .Delete("r1")
-                .Delete("r2")
-                .ExecuteWithoutResultsAsync();
-
-            await this.Neo.Cypher
-                .Match("(p:Photo {path: $photo_path})")
-                .WithParam("photo_path", picture_path)
-                .Delete("p")
-                .ExecuteWithoutResultsAsync();
-
-            this.Service.DeleteImage(picture_path);
+                    .Match("(p:Photo {Path: $photo_path})")
+                    .WithParam("photo_path", filename)
+                    .DetachDelete("p")
+                    .ExecuteWithoutResultsAsync();
+            this.Service.DeleteImage(filename);
 
             return Ok(new { message = "Slika uspesno obrisana." });
 

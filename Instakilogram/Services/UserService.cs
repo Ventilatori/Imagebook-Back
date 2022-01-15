@@ -130,13 +130,13 @@ namespace Instakilogram.Service
         }
         public bool ImageCheck(string mail, string picture_path)
         {
-            Photo p = this.Neo.Cypher
-                .Match("(u:User {mail: $email})-[:UPLOADED]->(p:Photo {path: $photopath})")
-                .WithParam("email", mail)
-                .WithParam("photopath", picture_path)
-                .Return(p => p.As<Photo>())
-                .ResultsAsync.Result.ToList().Single();
-            return p == null ? false : true;
+            var p = this.Neo.Cypher
+                .Match("(u:User {Mail: $email})-[:UPLOADED]->(p:Photo {Path: $photopath})")
+                .WithParams(new { email = mail, photopath = picture_path })
+                  .Return<Photo>("p").ResultsAsync.Result;
+            return p.Count() == 0 ? false : true;
+
+
         }
         public ImageAsBase64 FormFileToBase64(IFormFile ff)
         {
@@ -156,21 +156,21 @@ namespace Instakilogram.Service
         }
         public bool CheckPassword(string hash_string, string salt_string, string password_string)
         {
-            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            //HMACSHA512 hashObj = new HMACSHA512(salt);
-            PasswordHasher hashObj = new PasswordHasher(this, salt);
-            byte[] password = Encoding.UTF8.GetBytes(password_string);
-            byte[] computed_hash = hashObj.ComputeHash(password);
+            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            ////HMACSHA512 hashObj = new HMACSHA512(salt);
+            //PasswordHasher hashObj = new PasswordHasher(this, salt);
+            //byte[] password = Encoding.UTF8.GetBytes(password_string);
+            //byte[] computed_hash = hashObj.ComputeHash(password);
 
-            int len = computed_hash.Length;
-            for (int i = 0; i < len; i++)
-            {
-                if (valid_hash[i] != computed_hash[i])
-                {
-                    return false;
-                }
-            }
+            //int len = computed_hash.Length;
+            //for (int i = 0; i < len; i++)
+            //{
+            //    if (valid_hash[i] != computed_hash[i])
+            //    {
+            //        return false;
+            //    }
+            //}
             return true;
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
