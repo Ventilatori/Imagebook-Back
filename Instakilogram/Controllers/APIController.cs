@@ -336,24 +336,24 @@ namespace Instakilogram.Controllers
 
             foreach (Hashtag h in htagsFollowed)
             {
-               var  singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
-                for (int i = 0; i < singleHphotos.Count(); i++)
-                {
-                    if (!Service.IsFromLast24h(singleHphotos[i].TimePosted))
+                var  singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
+                if(singleHphotos != null) {
+                    for (int i = 0; i < singleHphotos.Count(); i++)
                     {
-                        singleHphotos.Remove(singleHphotos[i]);
+                        if (!Service.IsFromLast24h(singleHphotos[i].TimePosted))
+                        {
+                            singleHphotos.Remove(singleHphotos[i]);
+                        }
+                        else
+                        {
+                            singleHphotos[i] = Service.ComputePhotoProp(Mail, singleHphotos[i]);
+                            combinedphotos.Add(singleHphotos[i]);
+                        }
                     }
-                    else
-                    {
-                        singleHphotos[i] = Service.ComputePhotoProp(Mail, singleHphotos[i]);
-                        combinedphotos.Add(singleHphotos[i]);
-                    }
-                    
                 }
 
             }
             return Ok(combinedphotos.ToList<Photo>());
-
         }
 
             //[HttpGet]
