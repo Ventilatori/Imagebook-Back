@@ -53,20 +53,15 @@ namespace Instakilogram.Controllers
         [Route("UpdateHtags/{filename}")]
         public async Task<IActionResult> UpdateHtags(string filename, [FromBody] string newHtags)
         {
-            //todo
-            //validiraj dal postoji stvarno taj htag
-            //promeni relaciju u neo4j
-
-            var qhtags = await this.Neo.Cypher
-                .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
-                .WithParam("img_name", filename)
-                .Return(h => h.CollectAs<Hashtag>())
-                .ResultsAsync;
-
-            List<Hashtag> existingHtags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
-
-            if (newHtags != null)
+            if (!String.IsNullOrEmpty(newHtags))
             {
+                var qhtags = await this.Neo.Cypher
+               .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
+               .WithParam("img_name", filename)
+               .Return(h => h.CollectAs<Hashtag>())
+               .ResultsAsync;
+
+                List<Hashtag> existingHtags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
 
                 string[] newHtagsArray = newHtags.Split('|');
 
@@ -74,16 +69,16 @@ namespace Instakilogram.Controllers
                 {
                     foreach (Hashtag h in existingHtags)
                     {
-                        if(!newHtagsArray.Contains(h.Title))
-                        await this.Neo.Cypher
-                         .Match("(h:Hashtag{Title:$htitle})-[r:HTAGS]->(p:Photo{Path:$img_name})")
-                         .WithParams(new { htitle = h.Title, img_name = filename })
-                         .Delete("r")
-                         .ExecuteWithoutResultsAsync();
+                        if (!newHtagsArray.Contains(h.Title))
+                            await this.Neo.Cypher
+                             .Match("(h:Hashtag{Title:$htitle})-[r:HTAGS]->(p:Photo{Path:$img_name})")
+                             .WithParams(new { htitle = h.Title, img_name = filename })
+                             .Delete("r")
+                             .ExecuteWithoutResultsAsync();
                     }
                 }
 
-                foreach (string hTag in newHtags.Split('|'))
+                foreach (string hTag in newHtagsArray)
                 {
                     await this.Neo.Cypher
                         .Merge("(h:Hashtag {Title: $new_title})")
@@ -96,27 +91,43 @@ namespace Instakilogram.Controllers
                         .Create("(hh)-[s:HTAGS]->(p)")
                         .ExecuteWithoutResultsAsync();
                 }
+
             }
+            else //detach all hashtags
+            {
+                await this.Neo.Cypher
+                   .Match("(h:Hashtag)-[r:HTAGS]->(p:Photo{Path:$img_name})")
+                    .WithParam("img_name", filename)
+                    .Delete("r")
+                    .ExecuteWithoutResultsAsync();
+            }
+            await this.Neo.Cypher
+                .Match("(p:Photo{Path:$photopath})")
+                .WithParam("photopath", filename)
+                .Set("p.Hashtags=$new")
+                .WithParam("new", newHtags)
+                .ExecuteWithoutResultsAsync();
             return Ok();
         }
         [HttpPut]
         [Route("UpdateTaggedP/{filename}")]
         public async Task<IActionResult> UpdateTaggedP(string filename, [FromBody] string newTaggedP)
         {
-            var qtusers = await this.Neo.Cypher
-              .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
-              .WithParam("img_name", filename)
-              .Return(u => u.CollectAs<User>())
-              .ResultsAsync;
+         
+           
 
-            List<User> existingUsers = qtusers.Count() == 0 ? null : qtusers.ToList().Single().ToList();
-
-            if (newTaggedP != null)
+            if (!String.IsNullOrEmpty(newTaggedP))
             {
+                var qtusers = await this.Neo.Cypher
+                   .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
+                   .WithParam("img_name", filename)
+                   .Return(u => u.CollectAs<User>())
+                   .ResultsAsync;
+                List<User> existingUsers = qtusers.Count() == 0 ? null : qtusers.ToList().Single().ToList();
 
                 string[] newTaggedPArray = newTaggedP.Split('|');
 
-                if (newTaggedP != null)
+               if (!String.IsNullOrEmpty(newTaggedP))
                 {
                     if (existingUsers != null)
                     {
@@ -143,11 +154,26 @@ namespace Instakilogram.Controllers
                                 .ExecuteWithoutResultsAsync();
                         }
                     }
+                  
 
                 }
-               
-               
             }
+            else //detach all tagged users
+            {
+              await this.Neo.Cypher
+              .Match("(u:User)<-[r:TAGS]-(p:Photo{Path:$img_name})")
+              .WithParam("img_name", filename)
+              .Delete("r")
+              .ExecuteWithoutResultsAsync();
+
+            }
+
+            await this.Neo.Cypher
+                       .Match("(p:Photo{Path:$photopath})")
+                       .WithParam("photopath", filename)
+                       .Set("p.TaggedUsers=$new")
+                       .WithParam("new", newTaggedP)
+                       .ExecuteWithoutResultsAsync();
             return Ok();
         }
         [HttpPut]
@@ -166,81 +192,13 @@ namespace Instakilogram.Controllers
             return Ok();
         }
 
-        [HttpPost]
-        [Route("ChangePhoto")]
-        public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
-        {
-            //string mail = (string)HttpContext.Items["User"];
-
-            //string picture_path = this.Service.ExtractPictureName(request.PictureURL);
-
-            //if (!this.Service.ImageCheck(mail, picture_path))
-            //{
-            //    return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
-            //}
-
-            //if (!String.IsNullOrEmpty(request.Description))
-            //{
-            //    await this.Neo.Cypher
-            //        .Match("(p:Photo {path: $photopath})")
-            //        .WithParam("photopath", picture_path)
-            //        .Set("p.description: $new")
-            //        .WithParam("new", request.Description)
-            //        .ExecuteWithoutResultsAsync();
-            //}
-            //if (request.Tags.Any())
-            //{
-            //    await this.Neo.Cypher
-            //        .Match("(p:Photo {path: $photopath})-[r:TAGS]->(u:User)")
-            //        .WithParam("photopath", picture_path)
-            //        .Delete("r")
-            //        .ExecuteWithoutResultsAsync();
-
-            //    foreach (string tag in request.Tags)
-            //    {
-            //        await this.Neo.Cypher
-            //            .Match("(p:Photo {path: $photopath}),(u:User {userName: $name})")
-            //            .WithParam("photopath", picture_path)
-            //            .WithParam("name", tag)
-            //            .Create("(p)-[r:TAGS]->(u)")
-            //            .ExecuteWithoutResultsAsync();
-            //    }
-            //}
-            //if (request.Hashtags.Any())
-            //{
-            //    List<string> exceptions = this.Service.CommonListElements(picture_path, request.Hashtags);
-            //    this.Service.UpdateHashtags(picture_path, exceptions);
-
-            //    foreach (string title in request.Hashtags)
-            //    {
-            //        if (!exceptions.Contains(title))
-            //        {
-            //            Hashtag htag = this.Service.GetOrCreateHashtag(title);
-            //            await this.Neo.Cypher
-            //                .Match("(p:Photo {path: $path_val}), (h:Hashtag {title: $h_title})")
-            //                .WithParam("path_val", picture_path)
-            //                .WithParam("h_title", htag.Title)
-            //                .Create("(h)-[r:HTAGS]->(p)")
-            //                .ExecuteWithoutResultsAsync();
-            //        }
-            //    }
-            //}
-
-            return Ok(new { message = "Uspesno promenjena slika." });
-        }
 
         [HttpDelete]
-        [Route("DeletePhoto")]
-        public async Task<IActionResult> DeletePhoto( )
+        [Route("DeletePhoto/{filename}")]
+        public async Task<IActionResult> DeletePhoto(string filename)
         {
-            //todo edit string
             string picture_url = "";
-    
-
             string mail = (string)HttpContext.Items["User"];
-
-
-
             string picture_path = this.Service.ExtractPictureName(picture_url);
 
             if (!this.Service.ImageCheck(mail, picture_path))
