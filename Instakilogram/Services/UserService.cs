@@ -42,7 +42,8 @@ namespace Instakilogram.Service
         int PinGenerator();
         void SavePin(string mail, int PIN);
         bool CheckPin(string mail, int new_pin);
-        bool CheckPassword(string hash_string, string salt_string, string password_string);
+        bool 
+            (string hash_string, string salt_string, string password_string);
         void PasswordHash(out string hash_string, out string salt_string, string password_string);
         void SendMail(User user, MailType type);
         bool UserExists(string new_user_name, string new_mail = "");
@@ -163,21 +164,21 @@ namespace Instakilogram.Service
         }
         public bool CheckPassword(string hash_string, string salt_string, string password_string)
         {
-            //byte[] salt = Encoding.UTF8.GetBytes(salt_string);
-            //byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
-            ////HMACSHA512 hashObj = new HMACSHA512(salt);
-            //PasswordHasher hashObj = new PasswordHasher(this, salt);
-            //byte[] password = Encoding.UTF8.GetBytes(password_string);
-            //byte[] computed_hash = hashObj.ComputeHash(password);
+            byte[] salt = Encoding.UTF8.GetBytes(salt_string);
+            byte[] valid_hash = Encoding.UTF8.GetBytes(hash_string);
+            //HMACSHA512 hashObj = new HMACSHA512(salt);
+            PasswordHasher hashObj = new PasswordHasher(this, salt);
+            byte[] password = Encoding.UTF8.GetBytes(password_string);
+            byte[] computed_hash = hashObj.ComputeHash(password);
 
-            //int len = computed_hash.Length;
-            //for (int i = 0; i < len; i++)
-            //{
-            //    if (valid_hash[i] != computed_hash[i])
-            //    {
-            //        return false;
-            //    }
-            //}
+            int len = computed_hash.Length;
+            for (int i = 0; i < len; i++)
+            {
+                if (valid_hash[i] != computed_hash[i])
+                {
+                    return false;
+                }
+            }
             return true;
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
@@ -302,9 +303,7 @@ namespace Instakilogram.Service
 
                     }
                 }
-                //
-                //string img_string = JsonConvert.SerializeObject(Picture);
-                //db.StringSetAsync(user.UserName + "Profile", img_string, t);
+              
             }
 
             this.SendMail(user, IUserService.MailType.Verify);
@@ -323,12 +322,7 @@ namespace Instakilogram.Service
                 {
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
-                    //var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
-
-                    //dusan: ovo dopravi!
-                    //string picture = this.AddImage(new PhotoWithBase64 {  { Path = pic.FileName}, Base64Content = pic.Base64Content, CallerEmail = user.Mail }, IUserService.ImageType.Profile);
-
-                    //user.ProfilePicture = picture;
+             
                     db.KeyDelete(img_key);
                 }
 
@@ -396,13 +390,7 @@ namespace Instakilogram.Service
 
             foreach (Hashtag hashtag in hash_list)
             {
-                //koriscenjem cypher f-je exists(), proveriti da li relacija uopste postoji i direktno obrisati hashtag sa svim njegovim granama
-                //jednom recju odraditi sve u 1 naredbi (query-ju)
-
-                //this.Neo.Cypher
-                //    .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
-                //    .WithParam("val", hashtag.Title)
-                //    .Where()
+    
 
                 List<Photo> photos = this.Neo.Cypher
                     .Match("(h:Hashtag {title: $val})-[r:HTAGS]->(p:Photo)")
@@ -597,28 +585,6 @@ namespace Instakilogram.Service
             ph.Uploader = owner.UserName;
             return ph;
 
-            ////compute taged users
-            //var userNames = this.Neo.Cypher
-            //   .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
-            //   .WithParam("img_name", uncomputedPhoto.Path)
-            //   .Return<string>("u.UserName").ResultsAsync.Result.ToList();
-            //string userNamesCombined = string.Join("|", userNames.ToArray());
-
-            ////var qhtags = this.Neo.Cypher
-            ////    .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
-            ////    .WithParam("img_name", uncomputedPhoto.Path)
-            ////    .Return(h => h.CollectAs<Hashtag>())
-            ////    .ResultsAsync.Result;
-
-            ////List<Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
-
-            //// compute hashtags
-            //var hashTags = this.Neo.Cypher
-            //    .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
-            //    .WithParam("img_name", uncomputedPhoto.Path)
-            //    .Return<string>("h.Title").ResultsAsync.Result.ToList();
-            //string hashtagsCombined = string.Join("|", hashTags.ToArray());
-            //uncomputedPhoto.Hashtags = String.IsNullOrEmpty(hashtagsCombined) ? null : hashtagsCombined;
 
         }
 
