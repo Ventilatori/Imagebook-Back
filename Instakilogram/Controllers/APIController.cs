@@ -360,20 +360,23 @@ namespace Instakilogram.Controllers
 
         }
         [HttpGet]
-        [Route("GetNew")]
-        public async Task<IActionResult> GetNew()
+        [Route("GetNew12")]
+        public async Task<IActionResult> GetNew12()
         {
 
             var db = this.Redis.GetDatabase();
             PhotoWithBase64 pic = new PhotoWithBase64();
-            if (db.KeyExists("modqueue"))
+            var listOfPhotos = new List<string>();
+
+            if (db.KeyExists("latest12"))
             {
-
-                var image = db.ListRightPop("latest12");
-
-                pic = JsonConvert.DeserializeObject<PhotoWithBase64>(image);
+               
+                var photos = db.ListRange("latest12", 0, 11);
+                foreach (var rv in photos)
+                    listOfPhotos.Add(JsonConvert.DeserializeObject<string>(rv));
 
             }
+            return Ok(listOfPhotos);
         }
         [HttpGet]
         [Route("GetLiked")]

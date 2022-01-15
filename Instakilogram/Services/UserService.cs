@@ -106,9 +106,9 @@ namespace Instakilogram.Service
             await this.AddImageToNeo(ph);
             //
             var db = Redis.GetDatabase();     
-            db.ListLeftPush("latest12", JsonConvert.SerializeObject(ph));
-            db.ListTrim("latest12", 0, 12);
-
+            db.ListLeftPush("latest12", JsonConvert.SerializeObject(ph.Metadata.Path));
+            db.ListTrim("latest12", 12, -1);
+            //
             return ph.Metadata.Path;
         }
         public bool DeleteImage(string picture_name, IUserService.ImageType img_type = IUserService.ImageType.Standard)
