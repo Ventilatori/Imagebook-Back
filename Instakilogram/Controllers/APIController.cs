@@ -147,7 +147,7 @@ namespace Instakilogram.Controllers
                 .Match("(a:User),(b:Hashtag)")
                 .Where("a.Mail = $userA AND b.Title = $hashtagB")
                 .WithParams(new { userA = Mail, hashtagB = hashtagToFollow })
-                .Create("(a)-[r:FOLLOWS]->(b)")
+                .Merge("(a)-[r:FOLLOWS]->(b)")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
@@ -283,10 +283,6 @@ namespace Instakilogram.Controllers
                 {
                     uploadedPhotos[i] = Service.ComputePhotoProp(Mail, uploadedPhotos[i]);
                 }
-                foreach (Photo pp in uploadedPhotos)
-                {
-                   
-                }
             }
 
             var taggedOnPhotos_query = await this.Neo.Cypher
@@ -314,29 +310,75 @@ namespace Instakilogram.Controllers
             });
         }
 
-        //[HttpGet]
-        //[Route("getphotoproto/{path}")]
-        //public async Task<IActionResult> getphotoproto(string path)
-        //{
-        //    string Mail = (string)HttpContext.Items["User"];
+        [HttpGet]
+        [Route("GetHtagImages/{title}")] 
+        public async Task<IActionResult> GetHtagImages(string title)
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+            var photos = await this.Service.GetHtagImages(Mail, title);
+            
+            return Ok(photos);
+        }
+        [HttpGet]
+        [Route("GetHtagFeed24h")] 
+        public async Task<IActionResult> GetHtagFeed24h()
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+            //
+            var htagsFollowed = await this.Neo.Cypher
+               .Match("(a:User)-[:FOLLOWS]->(b:Hashtag)")
+               .Where((User a) => a.Mail == Mail)
+               .Return<Hashtag>("b").ResultsAsync;
+
+            HashSet<Photo> combinedphotos = new HashSet<Photo>();
+
+            foreach (Hashtag h in htagsFollowed)
+            {
+               var  singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
+                for (int i = 0; i < singleHphotos.Count(); i++)
+                {
+                    if (!Service.IsFromLast24h(singleHphotos[i].TimePosted))
+                    {
+                        singleHphotos.Remove(singleHphotos[i]);
+                    }
+                    else
+                    {
+                        singleHphotos[i] = Service.ComputePhotoProp(Mail, singleHphotos[i]);
+                        combinedphotos.Add(singleHphotos[i]);
+                    }
+                    
+                }
+
+            }
+            return Ok(combinedphotos.ToList<Photo>());
+
+        }
+
+            //[HttpGet]
+            //[Route("getphotoproto/{path}")]
+            //public async Task<IActionResult> getphotoproto(string path)
+            //{
+            //    string Mail = (string)HttpContext.Items["User"];
 
 
 
 
-        //    var qphoto = await this.Neo.Cypher
-        //        .Match("(p:Photo)")
-        //        .Where((Photo p) => p.Path == ph.path)
-        //        .Return(p => p.As<Photo>())
-        //        .ResultsAsync;
+            //    var qphoto = await this.Neo.Cypher
+            //        .Match("(p:Photo)")
+            //        .Where((Photo p) => p.Path == ph.path)
+            //        .Return(p => p.As<Photo>())
+            //        .ResultsAsync;
 
-        //    if (qphoto.Count() == 0)
-        //    {
-        //        return Ok("Nema slicke");
-        //    }
+            //    if (qphoto.Count() == 0)
+            //    {
+            //        return Ok("Nema slicke");
+            //    }
 
-        //    Photo photo = qphoto.Single();
-           
-        //    return Ok(photo);
-        //}
-    }
+            //    Photo photo = qphoto.Single();
+
+            //    return Ok(photo);
+            //}
+        }
 }

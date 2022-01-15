@@ -9,6 +9,6 @@ namespace Instakilogram.Models
     {
         public string Title { get; set; }
         //public string? ProfilePicture { get; set; }
-
+        public bool? IsFollowed { get; set; }
     }
 }
