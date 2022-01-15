@@ -58,11 +58,11 @@ namespace Instakilogram.Controllers
             {
 
                 photo = qphoto.Single();
-                if (photo != null)  photo = Service.ComputePhotoProp(Mail, photo);
+                if (photo != null) photo = Service.ComputePhotoProp(Mail, photo);
             }
 
 
-        
+
 
 
 
@@ -101,8 +101,8 @@ namespace Instakilogram.Controllers
                         photos.Add(ph);
                     }
                 }
-                
-                    
+
+
             }
             return Ok(photos);
         }
@@ -203,10 +203,9 @@ namespace Instakilogram.Controllers
         [Route("Search/{username}")]
         public async Task<IActionResult> Search(string username)
         {
-            Regex rgx = new Regex("" + username + ".*");
             string Mail = (string)HttpContext.Items["User"];
 
-            var matchingUsers =  this.Neo.Cypher
+            var matchingUsers = this.Neo.Cypher
                .Match("(a:User)")
                .Where((User a) => a.UserName.Contains(username))
                .Return<User>("a").ResultsAsync.Result.ToList<User>();
@@ -299,7 +298,7 @@ namespace Instakilogram.Controllers
                 {
                     taggedOnPhotos[i] = Service.ComputePhotoProp(Mail, taggedOnPhotos[i]); ;
                 }
-             
+
             }
             user = this.Service.ComputeUserFollowB(Mail, user);
             return Ok(new GetUserResponse
@@ -311,17 +310,17 @@ namespace Instakilogram.Controllers
         }
 
         [HttpGet]
-        [Route("GetHtagImages/{title}")] 
+        [Route("GetHtagImages/{title}")]
         public async Task<IActionResult> GetHtagImages(string title)
         {
             string Mail = (string)HttpContext.Items["User"];
 
             var photos = await this.Service.GetHtagImages(Mail, title);
-            
+
             return Ok(photos);
         }
         [HttpGet]
-        [Route("GetHtagFeed24h")] 
+        [Route("GetHtagFeed24h")]
         public async Task<IActionResult> GetHtagFeed24h()
         {
             string Mail = (string)HttpContext.Items["User"];
@@ -336,7 +335,7 @@ namespace Instakilogram.Controllers
 
             foreach (Hashtag h in htagsFollowed)
             {
-               var  singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
+                var singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
                 for (int i = 0; i < singleHphotos.Count(); i++)
                 {
                     if (!Service.IsFromLast24h(singleHphotos[i].TimePosted))
@@ -348,37 +347,45 @@ namespace Instakilogram.Controllers
                         singleHphotos[i] = Service.ComputePhotoProp(Mail, singleHphotos[i]);
                         combinedphotos.Add(singleHphotos[i]);
                     }
-                    
+
                 }
 
             }
             return Ok(combinedphotos.ToList<Photo>());
 
         }
-
-            //[HttpGet]
-            //[Route("getphotoproto/{path}")]
-            //public async Task<IActionResult> getphotoproto(string path)
-            //{
-            //    string Mail = (string)HttpContext.Items["User"];
-
-
-
-
-            //    var qphoto = await this.Neo.Cypher
-            //        .Match("(p:Photo)")
-            //        .Where((Photo p) => p.Path == ph.path)
-            //        .Return(p => p.As<Photo>())
-            //        .ResultsAsync;
-
-            //    if (qphoto.Count() == 0)
-            //    {
-            //        return Ok("Nema slicke");
-            //    }
-
-            //    Photo photo = qphoto.Single();
-
-            //    return Ok(photo);
-            //}
+        [HttpGet]
+        [Route("GetNew")]
+        public async Task<IActionResult> GetNew()
+        {
+            return Ok();
         }
+        [HttpGet]
+        [Route("GetLiked")]
+        public async Task<IActionResult> GetLiked()
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+            var phList = await this.Neo.Cypher
+                    .Match("(a:User{Mail:$ma})-[:LIKES]->(p:Photo)")
+                    .WithParam("ma", Mail)
+                    .Return<Photo>("p").ResultsAsync;
+
+            var photolist = phList.ToList<Photo>();
+            for (int i = 0; i < photolist.Count(); i++)
+            {
+                photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
+            }
+
+            return Ok(photolist);
+        }
+
+
+        [HttpGet]
+        [Route("SearchHtag/{title}")]
+        public async Task<IActionResult> SearchHtag(string title)
+        {
+            return Ok();
+        }
+    }
 }

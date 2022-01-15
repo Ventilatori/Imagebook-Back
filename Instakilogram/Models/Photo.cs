@@ -18,7 +18,7 @@ namespace Instakilogram.Models
         public DateTime TimePosted { get; set; }
         public string? Description { get; set; }
         public int NumberOfLikes { get; set; }
-        public bool IsLiked { get; set; }
+        public bool? IsLiked { get; set; }
 
         public string? Uploader { get; set; }
         public string? TaggedUsers { get; set; }
