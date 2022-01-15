@@ -409,6 +409,7 @@ namespace Instakilogram.Controllers
         [Route("GetTop")]
         public async Task<IActionResult> GetTop()
         {
+            string Mail = (string)HttpContext.Items["User"];
             var phList = await this.Neo.Cypher
               .Match("(a:Photo)")
               .With("a")
@@ -416,7 +417,14 @@ namespace Instakilogram.Controllers
               .Return<Photo>("a")
               .OrderBy("a.NumberOfLikes DESC")
               .Limit(10).ResultsAsync;
-          
+
+            var photolist = phList.ToList<Photo>();
+            for (int i = 0; i < photolist.Count(); i++)
+            {
+                photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
+            }
+
+
             return Ok(phList);
         }
     }
