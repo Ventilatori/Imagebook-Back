@@ -299,8 +299,8 @@ namespace Instakilogram.Controllers
             else
             {
 
-               await this.Service.AddImage(ph);
-                return Ok(new { Message = "Moderation is off" });
+               var filename = await this.Service.AddImage(ph);
+                return Ok(new { Path = filename });
             }
 
             
