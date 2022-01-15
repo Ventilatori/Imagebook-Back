@@ -104,6 +104,10 @@ namespace Instakilogram.Service
             }
 
             await this.AddImageToNeo(ph);
+            //
+            var db = Redis.GetDatabase();     
+            db.ListLeftPush("latest12", JsonConvert.SerializeObject(ph));
+            db.ListTrim("latest12", 0, 12);
 
             return ph.Metadata.Path;
         }

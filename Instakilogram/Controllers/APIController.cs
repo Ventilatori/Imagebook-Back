@@ -16,6 +16,7 @@ using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
 using Instakilogram.RequestResponse;
+using StackExchange.Redis;
 
 namespace Instakilogram.Controllers
 {
@@ -26,12 +27,16 @@ namespace Instakilogram.Controllers
         private IGraphClient Neo;
         public IHostingEnvironment hostingEnvironment;
         private IUserService Service;
+        private IConnectionMultiplexer Redis;
 
-        public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service)
+
+
+        public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service, IConnectionMultiplexer redis)
         {
             this.Neo = gc;
             hostingEnvironment = hostingEnv;
             Service = service;
+            Redis = redis;
         }
 
         [HttpGet]
@@ -358,7 +363,17 @@ namespace Instakilogram.Controllers
         [Route("GetNew")]
         public async Task<IActionResult> GetNew()
         {
-            return Ok();
+
+            var db = this.Redis.GetDatabase();
+            PhotoWithBase64 pic = new PhotoWithBase64();
+            if (db.KeyExists("modqueue"))
+            {
+
+                var image = db.ListRightPop("latest12");
+
+                pic = JsonConvert.DeserializeObject<PhotoWithBase64>(image);
+
+            }
         }
         [HttpGet]
         [Route("GetLiked")]
@@ -381,11 +396,6 @@ namespace Instakilogram.Controllers
         }
 
 
-        [HttpGet]
-        [Route("SearchHtag/{title}")]
-        public async Task<IActionResult> SearchHtag(string title)
-        {
-            return Ok();
-        }
+      
     }
 }
