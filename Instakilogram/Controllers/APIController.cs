@@ -247,7 +247,7 @@ namespace Instakilogram.Controllers
 
                 foreach (User friendOfFriend in friend_friendList)
                 {
-                    if (!myFriendList.Contains(friendOfFriend))
+                    if (!myFriendList.Contains(friendOfFriend) && friendOfFriend.Mail != Mail)
                     {
                         int currentCount;
 
