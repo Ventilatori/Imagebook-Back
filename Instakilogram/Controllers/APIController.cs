@@ -62,34 +62,11 @@ namespace Instakilogram.Controllers
             }
 
 
-            var qphotoOwner = await this.Neo.Cypher
-                .Match("(u:User)-[:UPLOADED]->(p:Photo{Path:$img_name})")
-                .WithParam("img_name", picture)
-                .Return(u => u.As<User>())
-                .ResultsAsync;
-
-            User owner = qphotoOwner.Count() == 0 ? null : qphotoOwner.Single();
+        
 
 
 
-            var qtusers = await this.Neo.Cypher
-               .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
-               .WithParam("img_name", picture)
-               .Return(u => u.CollectAs<User>())
-               .ResultsAsync;
-
-            List<User> tUsers = qtusers.Count() == 0 ? null : qtusers.ToList().Single().ToList();
-
-
-            var qhtags = await this.Neo.Cypher
-                .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
-                .WithParam("img_name", picture)
-                .Return(h => h.CollectAs<Hashtag>())
-                .ResultsAsync;
-
-            List<Hashtag> htags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
-
-            return Ok(new { Photo = photo, User = owner, Hashtags = htags, TaggedUsers = tUsers });
+            return Ok(photo);
 
         }
 
