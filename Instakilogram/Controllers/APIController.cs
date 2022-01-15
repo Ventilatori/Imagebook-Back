@@ -363,18 +363,24 @@ namespace Instakilogram.Controllers
         [Route("GetNew12")]
         public async Task<IActionResult> GetNew12()
         {
-
+            string Mail = (string)HttpContext.Items["User"];
             var db = this.Redis.GetDatabase();
-            PhotoWithBase64 pic = new PhotoWithBase64();
-            var listOfPhotos = new List<string>();
+       
+            var listOfPhotos = new List<Photo>();
 
             if (db.KeyExists("latest12"))
             {
-               
+
                 var photos = db.ListRange("latest12", 0, 11);
                 foreach (var rv in photos)
-                    listOfPhotos.Add(JsonConvert.DeserializeObject<string>(rv));
+                {
 
+
+                    Photo photo = JsonConvert.DeserializeObject<Photo>(rv);
+                    photo =  this.Service.ComputePhotoProp(Mail, photo);
+                    listOfPhotos.Add(photo);
+                }
+               
             }
             return Ok(listOfPhotos);
         }
