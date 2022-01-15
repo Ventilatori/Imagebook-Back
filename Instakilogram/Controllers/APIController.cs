@@ -229,7 +229,7 @@ namespace Instakilogram.Controllers
         {
             string Mail = (string)HttpContext.Items["User"];
 
-            int minimumConnectedPeople = 1;
+            int minimumConnectedPeople = 1; //how much friends need to follow User to recommend it
 
             Dictionary<User, int> peopleToRecommend = new Dictionary<User, int>();
 
@@ -454,6 +454,54 @@ namespace Instakilogram.Controllers
             }
             return Ok(matchingHtagsC);
 
+        }
+
+        [HttpGet]
+        [Route("GetRecommendedHtags")]
+        public async Task<IActionResult> GetRecommendedHtags()
+        {
+            string Mail = (string)HttpContext.Items["User"];
+
+            int minimumConnectedPeople = 1; //how much friends need to follow Htag to recommend it
+
+            Dictionary<Hashtag, int> htagsToRecommend = new Dictionary<Hashtag, int>();
+
+            var myHtagList = await this.Neo.Cypher
+             .Match("(a:User)-[:FOLLOWS]->(b:Hashtag)")
+             .Where((User a) => a.Mail == Mail)
+             .Return<Hashtag>("b").ResultsAsync;
+
+            var myFriendList = await this.Neo.Cypher
+              .Match("(a:User)-[:FOLLOWS]->(b:User)")
+              .Where((User a) => a.Mail == Mail)
+              .Return<User>("b").ResultsAsync;
+
+            foreach (User friend in myFriendList)
+            {
+                var friend_HtagList = await this.Neo.Cypher
+                    .Match("(a:User)-[:FOLLOWS]->(h:Hashtag)")
+                    .Where((User a) => a.UserName == friend.UserName)
+                    .Return<Hashtag>("h").ResultsAsync;
+
+                foreach (Hashtag friends_Htag in friend_HtagList)
+                {
+                    if (!myHtagList.Contains(friends_Htag))
+                    {
+                        int currentCount;
+
+                        htagsToRecommend.TryGetValue(friends_Htag, out currentCount);
+
+                        htagsToRecommend[friends_Htag] = currentCount + 1;
+
+                    }
+                }
+            }
+
+            var matchedKvp = htagsToRecommend.Where(kvp => kvp.Value >= minimumConnectedPeople);
+            var matches = (from kvp in matchedKvp select kvp.Key).ToList();
+
+
+            return Ok(matches);
         }
 
     } 
