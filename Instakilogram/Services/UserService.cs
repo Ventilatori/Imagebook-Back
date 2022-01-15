@@ -52,7 +52,7 @@ namespace Instakilogram.Service
         Hashtag GetOrCreateHashtag(string title);
         string ExtractPictureName(string url);
         List<string> CommonListElements(string picture_path, List<string> new_hashtags);
-        void UpdateHashtags(string picture_path, List<string> exceptions=null);
+        void UpdateHashtags(string picture_path, List<string> exceptions = null);
         string GenerateCookie(int length = 25);
         void StoreCookie(string key, string mail);
         string? CheckCookie(string key);
@@ -64,7 +64,8 @@ namespace Instakilogram.Service
         public bool IsPhotoLiked(string userEmail, string photoFileName);
 
         public Task<bool> AddImageToNeo(PhotoWithBase64 ph);
-        public Photo ComputePhotoProp(string userEmail,  Photo ph);
+        public Photo ComputePhotoProp(string userEmail, Photo ph);
+        public User ComputeUserFollowB(string callerMail, User userB);
 
     }
 
@@ -76,7 +77,8 @@ namespace Instakilogram.Service
         public IConnectionMultiplexer Redis;
         public URLs URL { get; set; }
 
-        public UserService(IGraphClient gc, IConnectionMultiplexer mux, IOptions<MailSettings> mailSettings, IOptions<URLs> url, IWebHostEnvironment environment) {
+        public UserService(IGraphClient gc, IConnectionMultiplexer mux, IOptions<MailSettings> mailSettings, IOptions<URLs> url, IWebHostEnvironment environment)
+        {
             this.Neo = gc;
             this._mailSettings = mailSettings.Value;
             this.URL = url.Value;
@@ -85,9 +87,9 @@ namespace Instakilogram.Service
         }
         public async Task<String> AddImage(PhotoWithBase64 ph, IUserService.ImageType img_type = IUserService.ImageType.Standard)
         {
-           
+
             var picture = new ImageAsBase64 { FileName = ph.Metadata.Path, Base64Content = ph.Base64Content, CallerEmail = ph.CallerEmail };
-            string folderPath = "Images/"+img_type.ToString();
+            string folderPath = "Images/" + img_type.ToString();
             string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
             if (picture != null)
             {
@@ -99,7 +101,7 @@ namespace Instakilogram.Service
             {
                 ph.Metadata.Path = "default.png";
             }
-            
+
             await this.AddImageToNeo(ph);
 
             return ph.Metadata.Path;
@@ -108,8 +110,8 @@ namespace Instakilogram.Service
         {
             if (!String.Equals(picture_name, "default.png"))
             {
-                string folderPath = "Images/"+img_type.ToString();
-                
+                string folderPath = "Images/" + img_type.ToString();
+
                 string uploadsFolder = Path.Combine(Environment.WebRootPath, folderPath);
                 string filePath = Path.Combine(uploadsFolder, picture_name);
 
@@ -175,7 +177,7 @@ namespace Instakilogram.Service
         }
         public void PasswordHash(out string hash_string, out string salt_string, string password_string)
         {
-            byte[] hash,salt;
+            byte[] hash, salt;
             PasswordHasher hashObj = new PasswordHasher(this);
             //HMACSHA512 hashObj = new HMACSHA512();
             salt = hashObj.Key;
@@ -250,14 +252,14 @@ namespace Instakilogram.Service
                 .Return(u => u.As<User>())
                 .ResultsAsync.Result;
             //User result = query.ToList().Single();
-            if(query.Any())
+            if (query.Any())
             {
                 return true;
             }
-            
+
             var db = this.Redis.GetDatabase();
             //var _result = db.StringGetAsync(new_user_name).Result;
-            if(db.KeyExists(new_user_name))
+            if (db.KeyExists(new_user_name))
             {
                 return true;
             }
@@ -275,7 +277,7 @@ namespace Instakilogram.Service
             TimeSpan t = d2 - d1;
             db.StringSetAsync(user.UserName, user_string, t);
 
-            if(Picture != null)
+            if (Picture != null)
             {
                 //
                 if (Picture.Length > 0)
@@ -291,16 +293,16 @@ namespace Instakilogram.Service
                         pic.Base64Content = s;
 
 
-;                      
+                        ;
                         db.StringSetAsync(user.UserName + "Profile", JsonConvert.SerializeObject(pic), t);
-                        
+
                     }
                 }
                 //
                 //string img_string = JsonConvert.SerializeObject(Picture);
                 //db.StringSetAsync(user.UserName + "Profile", img_string, t);
             }
-            
+
             this.SendMail(user, IUserService.MailType.Verify);
         }
         public string ApproveAccount(string key)
@@ -308,12 +310,12 @@ namespace Instakilogram.Service
 
             string link = null;
             var db = this.Redis.GetDatabase();
-            if(db.KeyExists(key))
+            if (db.KeyExists(key))
             {
                 var result = db.StringGetAsync(key).Result;
                 User user = JsonConvert.DeserializeObject<User>(result);
                 string img_key = user.UserName + "Profile";
-                if (String.Equals(user.ProfilePicture,"") && db.KeyExists(img_key))
+                if (String.Equals(user.ProfilePicture, "") && db.KeyExists(img_key))
                 {
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
@@ -323,14 +325,14 @@ namespace Instakilogram.Service
 
                     //dusan: ovo dopravi!
                     //string picture = this.AddImage(new PhotoWithBase64 {  { Path = pic.FileName}, Base64Content = pic.Base64Content, CallerEmail = user.Mail }, IUserService.ImageType.Profile);
-              
+
                     //user.ProfilePicture = picture;
                     db.KeyDelete(img_key);
                 }
 
                 this.Neo.Cypher
                     .Create("(u:User $prop)")
-                    .WithParam("prop",user)
+                    .WithParam("prop", user)
                     .ExecuteWithoutResultsAsync();
 
                 db.KeyDelete(key);
@@ -355,9 +357,9 @@ namespace Instakilogram.Service
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync.Result.ToList().Single().ToList();
 
-            foreach(Hashtag tmp_tag in hashtags)
+            foreach (Hashtag tmp_tag in hashtags)
             {
-                if(new_hashtags.Contains(tmp_tag.Title))
+                if (new_hashtags.Contains(tmp_tag.Title))
                 {
                     exceptions.Append(tmp_tag.Title);
                 }
@@ -366,11 +368,11 @@ namespace Instakilogram.Service
             return exceptions;
         }
         //sta ako user prati hashtag koji je obrisan prilikom azuriranja slike
-        public void UpdateHashtags(string picture_path, List<string> exceptions=null)
+        public void UpdateHashtags(string picture_path, List<string> exceptions = null)
         {
             List<Hashtag> hash_list;
             //bira samo hashtagove koji nisu u listi exceptions
-            if(exceptions!=null)
+            if (exceptions != null)
             {
                 hash_list = this.Neo.Cypher
                 .Match("(h:Hashtag)-[r:HTAGS]->(p:Photo {path: $photopath})")
@@ -389,7 +391,7 @@ namespace Instakilogram.Service
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync.Result.ToList().Single().ToList();
             }
-            
+
             foreach (Hashtag hashtag in hash_list)
             {
                 //koriscenjem cypher f-je exists(), proveriti da li relacija uopste postoji i direktno obrisati hashtag sa svim njegovim granama
@@ -470,7 +472,7 @@ namespace Instakilogram.Service
         public string? CheckCookie(string key)
         {
             var db = this.Redis.GetDatabase();
-            if(db.KeyExists(key))
+            if (db.KeyExists(key))
             {
                 return db.StringGetAsync(key).Result;
             }
@@ -483,7 +485,7 @@ namespace Instakilogram.Service
         public void DeleteCookie(string key)
         {
             var db = this.Redis.GetDatabase();
-            if(db.KeyExists(key))
+            if (db.KeyExists(key))
             {
                 //obrisati key
                 db.KeyDeleteAsync(key);
@@ -519,7 +521,7 @@ namespace Instakilogram.Service
 
         public bool IsPhotoLiked(string userEmail, string photoFileName)
         {
-            var query =  this.Neo.Cypher
+            var query = this.Neo.Cypher
              .Match("(a:User)-[r:LIKES]->(b:Photo)")
              .Where("a.Mail = $userA AND b.Path = $photoName")
              .WithParams(new { userA = userEmail, photoName = photoFileName })
@@ -575,7 +577,7 @@ namespace Instakilogram.Service
         }
         public Photo ComputePhotoProp(string userEmail, Photo ph)
         {
-  
+
             //compute is liked 
             var query = this.Neo.Cypher
                 .Match("(a:User)-[r:LIKES]->(b:Photo)")
@@ -619,7 +621,19 @@ namespace Instakilogram.Service
             //string hashtagsCombined = string.Join("|", hashTags.ToArray());
             //uncomputedPhoto.Hashtags = String.IsNullOrEmpty(hashtagsCombined) ? null : hashtagsCombined;
 
-            
+
+        }
+
+        public User ComputeUserFollowB(string callerMail, User userB)
+        {
+            var query = this.Neo.Cypher
+                .Match("(a:User)-[r:FOLLOWS]->(b:User)")
+                .Where("a.Mail = $userA AND b.UserName = $user_B")
+                .WithParams(new { userA = callerMail, user_B = userB.UserName })
+                .Return<User>("b").ResultsAsync.Result;
+
+            userB.IsFollowed = (query.Count() == 0 ? false : true);
+            return userB;
         }
 
     }

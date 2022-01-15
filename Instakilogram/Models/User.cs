@@ -29,5 +29,7 @@ namespace Instakilogram.Models
 
         public bool? IsModerator { get; set; }
 
+        public bool IsFollowed { get; set; }
+
     }
 }
