@@ -118,7 +118,7 @@ namespace Instakilogram.Controllers
                 .Match("(a:User),(b:User)")
                 .Where("a.Mail = $userA AND b.UserName = $userB")
                 .WithParams(new { userA = Mail, userB = usernameToFollow })
-                .Create("(a)-[r:FOLLOWS]->(b)")
+                .Merge("(a)-[r:FOLLOWS]->(b)")
                 .ExecuteWithoutResultsAsync();
             return Ok();
         }
@@ -204,11 +204,17 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> Search(string username)
         {
             Regex rgx = new Regex("" + username + ".*");
+            string Mail = (string)HttpContext.Items["User"];
 
-            var matchingUsers = await this.Neo.Cypher
+            var matchingUsers =  this.Neo.Cypher
                .Match("(a:User)")
                .Where((User a) => a.UserName.Contains(username))
-               .Return<User>("a").ResultsAsync;
+               .Return<User>("a").ResultsAsync.Result.ToList<User>();
+
+            for (int i = 0; i < matchingUsers.Count(); i++)
+            {
+                matchingUsers[i] = this.Service.ComputeUserFollowB(Mail, matchingUsers[i]);
+            }
             return Ok(matchingUsers);
         }
 
@@ -244,7 +250,7 @@ namespace Instakilogram.Controllers
             }
 
             var matches = peopleToRecommend.Where(kvp => kvp.Value > minimumConnectedPeople);
-
+            //compute isfollowed
             return Ok(matches);
         }
 
@@ -299,7 +305,7 @@ namespace Instakilogram.Controllers
                 }
              
             }
-
+            user = this.Service.ComputeUserFollowB(Mail, user);
             return Ok(new GetUserResponse
             {
                 User = user,
