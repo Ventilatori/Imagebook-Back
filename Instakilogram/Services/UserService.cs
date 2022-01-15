@@ -144,8 +144,6 @@ namespace Instakilogram.Service
                   .Return<Photo>("p").ResultsAsync.Result;
             return p.Count() == 0 ? false : true;
 
-
-
         }
         public ImageAsBase64 FormFileToBase64(IFormFile ff)
         {
@@ -299,7 +297,6 @@ namespace Instakilogram.Service
                         pic.FileName = Picture.FileName;
                         pic.Base64Content = s;
 
-
                         ;
                         db.StringSetAsync(user.UserName + "Profile", JsonConvert.SerializeObject(pic), t);
 
@@ -327,8 +324,6 @@ namespace Instakilogram.Service
                     var img_string = db.StringGetAsync(img_key).Result;
                     ImageAsBase64 pic = JsonConvert.DeserializeObject<ImageAsBase64>(img_string);
                     //var Picture = JsonConvert.DeserializeObject<FormFile>(img_string);
-
-
 
                     //dusan: ovo dopravi!
                     //string picture = this.AddImage(new PhotoWithBase64 {  { Path = pic.FileName}, Base64Content = pic.Base64Content, CallerEmail = user.Mail }, IUserService.ImageType.Profile);
@@ -549,7 +544,6 @@ namespace Instakilogram.Service
                     .Create("(u)-[r:UPLOADED]->(p)")
                     .ExecuteWithoutResultsAsync();
 
-
             if (ph.Metadata.TaggedUsers != null)
             {
                 foreach (string username in ph.Metadata.TaggedUsers.Split('|'))
@@ -603,14 +597,12 @@ namespace Instakilogram.Service
             ph.Uploader = owner.UserName;
             return ph;
 
-
             ////compute taged users
             //var userNames = this.Neo.Cypher
             //   .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
             //   .WithParam("img_name", uncomputedPhoto.Path)
             //   .Return<string>("u.UserName").ResultsAsync.Result.ToList();
             //string userNamesCombined = string.Join("|", userNames.ToArray());
-
 
             ////var qhtags = this.Neo.Cypher
             ////    .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
@@ -627,7 +619,6 @@ namespace Instakilogram.Service
             //    .Return<string>("h.Title").ResultsAsync.Result.ToList();
             //string hashtagsCombined = string.Join("|", hashTags.ToArray());
             //uncomputedPhoto.Hashtags = String.IsNullOrEmpty(hashtagsCombined) ? null : hashtagsCombined;
-
 
         }
 

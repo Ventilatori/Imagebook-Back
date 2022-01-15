@@ -30,8 +30,6 @@ namespace Instakilogram.Controllers
         private IUserService Service;
         private IConnectionMultiplexer Redis;
 
-
-
         public APIController(IGraphClient gc, IHostingEnvironment hostingEnv, IUserService service, IConnectionMultiplexer redis)
         {
             this.Neo = gc;
@@ -45,7 +43,7 @@ namespace Instakilogram.Controllers
         public async Task<IActionResult> GetPhoto(string photoName)
         {
             string Mail = (string)HttpContext.Items["User"];
-            string picture = photoName;//this.Service.ExtractPictureName(photoName);
+            string picture = photoName;
 
             var qphoto = await this.Neo.Cypher
                 .Match("(p:Photo)")
@@ -53,8 +51,7 @@ namespace Instakilogram.Controllers
                 .Return(p => p.As<Photo>())
                 .ResultsAsync;
 
-            //Photo photo = qphoto.Count() == 0 ? null : qphoto.Single();
-            Photo photo;
+                        Photo photo;
 
             if (qphoto.Count() == 0)
             {
@@ -67,17 +64,12 @@ namespace Instakilogram.Controllers
                 if (photo != null) photo = Service.ComputePhotoProp(Mail, photo);
             }
 
-
-
-
-
-
             return Ok(photo);
 
         }
 
         [HttpGet]
-        [Route("GetFeed24h")] //return photo and user in list 
+        [Route("GetFeed24h")] 
         public async Task<IActionResult> GetFeed24h()
         {
             string Mail = (string)HttpContext.Items["User"];
@@ -100,19 +92,16 @@ namespace Instakilogram.Controllers
                 var photolist = phList.ToList<Photo>();
                 for (int i = 0; i < photolist.Count(); i++)
                 {
-                    if (true || Service.IsFromLast24h(photolist[i].TimePosted)) //remove true in production
-                    {
+                    if (true || Service.IsFromLast24h(photolist[i].TimePosted))                     {
                         photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
                         var ph = photolist[i];
                         photos.Add(ph);
                     }
                 }
 
-
             }
             return Ok(photos);
         }
-
 
         [HttpPost]
         [Route("FollowUser/{usernameToFollow}")]
@@ -185,8 +174,7 @@ namespace Instakilogram.Controllers
             }
 
             var extension = "." + file.FileName.Split('.')[file.FileName.Split('.').Length - 1];
-            string fileName = DateTime.Now.Ticks + extension; //Create a new Name for the file due to security reasons.
-
+            string fileName = DateTime.Now.Ticks + extension; 
             var pathBuilt = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\callerUsername\\profilepics");
 
             if (!Directory.Exists(pathBuilt))
@@ -229,8 +217,7 @@ namespace Instakilogram.Controllers
         {
             string Mail = (string)HttpContext.Items["User"];
 
-            int minimumConnectedPeople = 1; //how much friends need to follow User to recommend it
-
+            int minimumConnectedPeople = 1; 
             Dictionary<User, int> peopleToRecommend = new Dictionary<User, int>();
 
             var myFriendList = await this.Neo.Cypher
@@ -262,7 +249,6 @@ namespace Instakilogram.Controllers
             var matchedKvp = peopleToRecommend.Where(kvp => kvp.Value >= minimumConnectedPeople);
             var matches = (from kvp in matchedKvp select kvp.Key).ToList();
 
-
             return Ok(matches);
         }
 
@@ -275,7 +261,6 @@ namespace Instakilogram.Controllers
             var user_query = await this.Neo.Cypher
                 .Match("(a:User)")
                 .Where((User a) => a.UserName == userName)
-                //.Return<User>("a")
                 .Return(a => a.As<User>())
                 .ResultsAsync;
 
@@ -284,7 +269,6 @@ namespace Instakilogram.Controllers
             var photos_query = await this.Neo.Cypher
                .Match("(a:User{UserName:$nameParam})-[:UPLOADED]->(p:Photo)")
                .WithParam("nameParam", userName)
-               //.Return<Photo>("p")
                .Return(p => p.CollectAs<Photo>())
                .ResultsAsync;
             List<Photo> uploadedPhotos = photos_query.Count() == 0 ? null : photos_query.ToList().Single().ToList();
@@ -300,7 +284,6 @@ namespace Instakilogram.Controllers
             var taggedOnPhotos_query = await this.Neo.Cypher
                 .Match("(p:Photo)-[:TAGS]->(a:User{UserName:$nameParam})")
                 .WithParam("nameParam", userName)
-                //.Return<Photo>("p")
                 .Return(p => p.CollectAs<Photo>())
                 .ResultsAsync;
             List<Photo> taggedOnPhotos = taggedOnPhotos_query.Count() == 0 ? null : taggedOnPhotos_query.ToList().Single().ToList();
@@ -338,8 +321,7 @@ namespace Instakilogram.Controllers
         {
             string Mail = (string)HttpContext.Items["User"];
 
-            //
-            var htagsFollowed = await this.Neo.Cypher
+                        var htagsFollowed = await this.Neo.Cypher
                .Match("(a:User)-[:FOLLOWS]->(b:Hashtag)")
                .Where((User a) => a.Mail == Mail)
                .Return<Hashtag>("b").ResultsAsync;
@@ -383,7 +365,6 @@ namespace Instakilogram.Controllers
                 var photos = db.ListRange("latest12", 0, 11);
                 foreach (var rv in photos)
                 {
-
 
                     Photo photo = JsonConvert.DeserializeObject<Photo>(rv);
                     photo = this.Service.ComputePhotoProp(Mail, photo);
@@ -431,7 +412,6 @@ namespace Instakilogram.Controllers
             {
                 photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
             }
-
 
             return Ok(phList);
         }
@@ -499,7 +479,6 @@ namespace Instakilogram.Controllers
 
             var matchedKvp = htagsToRecommend.Where(kvp => kvp.Value >= minimumConnectedPeople);
             var matches = (from kvp in matchedKvp select kvp.Key).ToList();
-
 
             return Ok(matches);
         }

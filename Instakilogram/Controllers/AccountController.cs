@@ -61,9 +61,6 @@ namespace Instakilogram.Controllers
          
             if (request.Picture == null)
             {
-                //ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
-                //string filename = this.Service.AddImage(picture, IUserService.ImageType.Profile);
-                //newUser.ProfilePicture += filename;
                 this.Service.TmpStoreAccount(newUser);
             }
             else
@@ -74,7 +71,6 @@ namespace Instakilogram.Controllers
             return Ok(new { message = "Poslat vam je mail za validaciju." });
         }
 
-        //ubaciti redirect url u appsettings.json 
         [HttpPost]
         [Route("Verify/{key}")]
         public async Task<IActionResult> ValidateAccount(string key)
@@ -98,12 +94,9 @@ namespace Instakilogram.Controllers
                     .Match("(n:User)")
                     .Where((User n) => n.Mail == mail);
 
-            //User user = this.Service.GetUserFromDb(mail); //da li user moze da se updatuje u NEO4j ako mu se prosledi ceo objekat, il za svaki propery mora SET klauzula
+           
             if (request != null)
             {
-                //query = this.Neo.Cypher
-                //    .Match("(n:User)")
-                //    .Where((User n) => n.Mail == mail);
 
                 if (!String.IsNullOrEmpty(request.UserName))
                 {
@@ -128,18 +121,13 @@ namespace Instakilogram.Controllers
             }
             if (request.Picture != null)
             {
-                //query = this.Neo.Cypher
-                //    .Match("(n:User)")
-                //    .Where((User n) => n.Mail == mail);
-
+             
                 ImageAsBase64 picture = new ImageAsBase64(this.Service.FormFileToBase64(request.Picture));
 
                 User user = query.Return(n => n.As<User>())
                     .ResultsAsync.Result.ToList().Single();
                 this.Service.DeleteImage(user.ProfilePicture, IUserService.ImageType.Profile);
-                //string picture_name = this.Service.AddImage(picture, IUserService.ImageType.Profile);
                 await query.Set("n.profilePicture: $new_profile_picture")
-                    //.WithParam("new_profile_picture", picture_name)
                     .ExecuteWithoutResultsAsync();
             }
 
@@ -147,7 +135,6 @@ namespace Instakilogram.Controllers
 
         }
 
-        //ovo je samo ako zna password i zeli da ga promeni
         [Auth]
         [HttpPost]
         [Route("PasswordReset")]
@@ -167,23 +154,18 @@ namespace Instakilogram.Controllers
                 return BadRequest(new { message = "Pogresna sifra." });
             }
 
-
             string hash, salt;
             this.Service.PasswordHash(out hash, out salt, request.New);
 
-            //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
+          
             await query.Set("n.password: $new.new_pass, n.salt: $new.new_salt")
-                //.Set("n.password = $new_pass, n.salt = $new_salt")
                 .WithParam("new", new {new_pass = hash, new_salt = salt})
-                //.WithParam("new_pass", hash)
-                //.WithParam("new_salt", salt)
                 .ExecuteWithoutResultsAsync();
 
             return Ok(new { message = "Uspesno promenjena sifra." });
 
         }
 
-        //ove 2 f-je dole je u slucaju da user zaboravi password
         [HttpPost]
         [Route("PasswordRecoverRequest")]
         public async Task<IActionResult> PasswordRecoverRequest([FromBody] string mail)
@@ -224,12 +206,9 @@ namespace Instakilogram.Controllers
             string hash, salt;
             this.Service.PasswordHash(out hash, out salt, request.NewPassword);
 
-            //ove komentare zameni ovim sto pise ako ne radi (ako ni to nece onda probaj prosledjivanje promena kroz update-ovanje celog objekta user)
+         
             await query.Set("n.password: $new.new_pass, n.salt: $new.new_salt")
-                //.Set("n.password = $new_pass, n.salt = $new_salt")
                 .WithParam("new", new { new_pass = hash, new_salt = salt })
-                //.WithParam("new_pass", hash)
-                //.WithParam("new_salt", salt)
                 .ExecuteWithoutResultsAsync();
 
             return Ok(new { message = "Uspesno promenjena sifra." });
@@ -252,7 +231,7 @@ namespace Instakilogram.Controllers
                 {
                     string cookie = this.Service.GenerateCookie();
                     this.Service.StoreCookie(cookie, user.Mail);
-                    await query.Set("u.online = 'true'").ExecuteWithoutResultsAsync(); //mozda 'true' treba preko WithParam()
+                    await query.Set("u.online = 'true'").ExecuteWithoutResultsAsync(); 
                     
                     LogInResponse response = new LogInResponse
                     {
@@ -262,7 +241,6 @@ namespace Instakilogram.Controllers
                         Cookie = cookie,
                         ProfilePicture = this.URL.ProfileImagesPath + user.ProfilePicture
                     };
-                    //ako nece url preko service onda ubaci objekat manuelno
 
                     return Ok(response);
                 }
@@ -284,7 +262,6 @@ namespace Instakilogram.Controllers
         {
             string mail = (string)HttpContext.Items["User"];
 
-            //proveri da li je Set() ok napisan
             await this.Neo.Cypher
                 .Match("(u:User)")
                 .Where((User u) => u.Mail == mail)
@@ -296,15 +273,6 @@ namespace Instakilogram.Controllers
             return Ok();
         }
         
-    
-        //[HttpGet]
-        //[Route("GetUser/{username}")]
-        //public async Task<IActionResult> GetUser(string username)
-        //{
-        //    var user = Service.GetUser(username);
-        //    return Ok(user);
-        //}
-
         [HttpPost]
         [Route("CreateAdmin/{code}")]
         public async Task<IActionResult> CreateAdmin(string code)

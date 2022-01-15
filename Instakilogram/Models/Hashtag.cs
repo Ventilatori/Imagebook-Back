@@ -8,7 +8,6 @@ namespace Instakilogram.Models
     public class Hashtag
     {
         public string Title { get; set; }
-        //public string? ProfilePicture { get; set; }
-        public bool? IsFollowed { get; set; }
+                public bool? IsFollowed { get; set; }
     }
 }

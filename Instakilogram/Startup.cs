@@ -46,7 +46,6 @@ namespace Instakilogram
                 });
             });
 
-
             services.Configure<URLs>(Configuration.GetSection("URLs"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
       

@@ -93,7 +93,7 @@ namespace Instakilogram.Controllers
                 }
 
             }
-            else //detach all hashtags
+            else 
             {
                 await this.Neo.Cypher
                    .Match("(h:Hashtag)-[r:HTAGS]->(p:Photo{Path:$img_name})")
@@ -192,7 +192,6 @@ namespace Instakilogram.Controllers
             return Ok();
         }
 
-
         [HttpDelete]
         [Route("DeletePhoto/{filename}")]
         public async Task<IActionResult> DeletePhoto(string filename)
@@ -202,11 +201,7 @@ namespace Instakilogram.Controllers
             string mail = (string)HttpContext.Items["User"];
             string picture_path = filename;
 
-            //if (!this.Service.ImageCheck(mail, picture_path))
-            //{
-            //    return BadRequest(new { message = "Slika ne postoji ili nije u vlasnistvu korisnika." });
-            //}
-
+                                                
             await this.Neo.Cypher
                     .Match("(p:Photo {Path: $photo_path})")
                     .WithParam("photo_path", filename)
@@ -218,8 +213,7 @@ namespace Instakilogram.Controllers
 
         }
 
-        //TODO FIX: Photo numberOfLikes has no limit per single caller
-        [HttpPost]
+                [HttpPost]
         [Route("LikePhoto/{photofilename}")]
         public async Task<IActionResult> LikePhoto(string photofilename)
         {
@@ -240,7 +234,6 @@ namespace Instakilogram.Controllers
                 .Merge("(a)-[r:LIKES]->(b)")
                  .Set("b.NumberOfLikes = b.NumberOfLikes + 1")
                 .ExecuteWithoutResultsAsync();
-
 
             return Ok();
         }
