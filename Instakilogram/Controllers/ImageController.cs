@@ -34,6 +34,138 @@ namespace Instakilogram.Controllers
             this.Redis = redis;
         }
 
+        [HttpPut]
+        [Route("UpdateDesc/{filename}")]
+        public async Task<IActionResult> UpdateDesc(string filename, [FromBody] string newDesc)
+        {
+            if (!String.IsNullOrEmpty(newDesc))
+            {
+                await this.Neo.Cypher
+                    .Match("(p:Photo{Path:$photopath})")
+                    .WithParam("photopath", filename)
+                    .Set("p.Description=$new")
+                    .WithParam("new", newDesc)
+                    .ExecuteWithoutResultsAsync();
+            }
+            return Ok();
+        }
+        [HttpPut]
+        [Route("UpdateHtags/{filename}")]
+        public async Task<IActionResult> UpdateHtags(string filename, [FromBody] string newHtags)
+        {
+            //todo
+            //validiraj dal postoji stvarno taj htag
+            //promeni relaciju u neo4j
+
+            var qhtags = await this.Neo.Cypher
+                .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
+                .WithParam("img_name", filename)
+                .Return(h => h.CollectAs<Hashtag>())
+                .ResultsAsync;
+
+            List<Hashtag> existingHtags = qhtags.Count() == 0 ? null : qhtags.ToList().Single().ToList();
+
+            if (newHtags != null)
+            {
+
+                string[] newHtagsArray = newHtags.Split('|');
+
+                if (existingHtags != null)
+                {
+                    foreach (Hashtag h in existingHtags)
+                    {
+                        if(!newHtagsArray.Contains(h.Title))
+                        await this.Neo.Cypher
+                         .Match("(h:Hashtag{Title:$htitle})-[r:HTAGS]->(p:Photo{Path:$img_name})")
+                         .WithParams(new { htitle = h.Title, img_name = filename })
+                         .Delete("r")
+                         .ExecuteWithoutResultsAsync();
+                    }
+                }
+
+                foreach (string hTag in newHtags.Split('|'))
+                {
+                    await this.Neo.Cypher
+                        .Merge("(h:Hashtag {Title: $new_title})")
+                        .WithParam("new_title", hTag)
+                        .With("h as hh")
+
+                        .Match("(p:Photo)")
+                        .Where("p.Path = $path ")
+                        .WithParams(new { title = hTag, path = filename })
+                        .Create("(hh)-[s:HTAGS]->(p)")
+                        .ExecuteWithoutResultsAsync();
+                }
+            }
+            return Ok();
+        }
+        [HttpPut]
+        [Route("UpdateTaggedP/{filename}")]
+        public async Task<IActionResult> UpdateTaggedP(string filename, [FromBody] string newTaggedP)
+        {
+            var qtusers = await this.Neo.Cypher
+              .Match("(u:User)<-[:TAGS]-(p:Photo{Path:$img_name})")
+              .WithParam("img_name", filename)
+              .Return(u => u.CollectAs<User>())
+              .ResultsAsync;
+
+            List<User> existingUsers = qtusers.Count() == 0 ? null : qtusers.ToList().Single().ToList();
+
+            if (newTaggedP != null)
+            {
+
+                string[] newTaggedPArray = newTaggedP.Split('|');
+
+                if (newTaggedP != null)
+                {
+                    if (existingUsers != null)
+                    {
+                        foreach (User u in existingUsers)
+                        {
+                            if (!newTaggedPArray.Contains(u.UserName))
+                                await this.Neo.Cypher
+                                 .Match("(p:Photo{Path:$img_name})-[r:TAGS]->(u:User{UserName:$uname})")
+                                 .WithParams(new { img_name = filename, uname = u.UserName })
+                                 .Delete("r")
+                                 .ExecuteWithoutResultsAsync();
+                        }
+                    }
+
+                    foreach (string username in newTaggedPArray)
+                    {
+                        if (this.Service.UserExists(username))
+                        {
+                            await this.Neo.Cypher
+                                .Match("(u:User), (p:Photo)")
+                                .Where("u.UserName = $usr AND p.Path = $path")
+                                .WithParams(new { usr = username, path = filename })
+                                .Merge("(p)-[t:TAGS]->(u)")
+                                .ExecuteWithoutResultsAsync();
+                        }
+                    }
+
+                }
+               
+               
+            }
+            return Ok();
+        }
+        [HttpPut]
+        [Route("UpdateTitle/{filename}")]
+        public async Task<IActionResult> UpdateTitle(string filename, [FromBody] string newTitle)
+        {
+            if (!String.IsNullOrEmpty(newTitle))
+            {
+                await this.Neo.Cypher
+                    .Match("(p:Photo{Path:$photopath})")
+                    .WithParam("photopath", filename)
+                    .Set("p.Title=$new")
+                    .WithParam("new", newTitle)
+                    .ExecuteWithoutResultsAsync();
+            }
+            return Ok();
+        }
+
         [HttpPost]
         [Route("ChangePhoto")]
         public async Task<IActionResult> ChangePhoto([FromBody] ChangePhotoRequest request)
@@ -213,13 +345,13 @@ namespace Instakilogram.Controllers
                 {
                     db.ListLeftPush("modqueue", JsonConvert.SerializeObject(ph));
                 }
-                return Ok("Moderation is on");
+                return Ok(new { Message = "Moderation is on" });
             }
             else
             {
 
                await this.Service.AddImage(ph);
-                return Ok("Moderation is off");
+                return Ok(new { Message = "Moderation is off" });
             }
             
 

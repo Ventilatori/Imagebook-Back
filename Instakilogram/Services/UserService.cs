@@ -613,7 +613,7 @@ namespace Instakilogram.Service
 
             //// compute hashtags
             //var hashTags = this.Neo.Cypher
-            //    .Match("(h:Hashtag)-[:HAVE]->(p:Photo{Path:$img_name})")
+            //    .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
             //    .WithParam("img_name", uncomputedPhoto.Path)
             //    .Return<string>("h.Title").ResultsAsync.Result.ToList();
             //string hashtagsCombined = string.Join("|", hashTags.ToArray());

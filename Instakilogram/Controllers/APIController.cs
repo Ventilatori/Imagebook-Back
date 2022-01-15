@@ -82,7 +82,7 @@ namespace Instakilogram.Controllers
 
 
             var qhtags = await this.Neo.Cypher
-                .Match("(h:Hashtag)-[:HAVE]->(p:Photo{Path:$img_name})")
+                .Match("(h:Hashtag)-[:HTAGS]->(p:Photo{Path:$img_name})")
                 .WithParam("img_name", picture)
                 .Return(h => h.CollectAs<Hashtag>())
                 .ResultsAsync;
@@ -104,7 +104,7 @@ namespace Instakilogram.Controllers
                 .Where((User a) => a.Mail == Mail)
                 .Return<User>("b").ResultsAsync;
 
-            var photos = new List<dynamic>();
+            var photos = new List<Photo>();
             foreach (User u in usersFollowed)
             {
 
@@ -121,7 +121,7 @@ namespace Instakilogram.Controllers
                     {
                         photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
                         var ph = photolist[i];
-                        photos.Add(new { ph , u });
+                        photos.Add(ph);
                     }
                 }
                 
