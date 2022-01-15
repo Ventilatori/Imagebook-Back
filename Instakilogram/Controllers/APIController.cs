@@ -99,7 +99,7 @@ namespace Instakilogram.Controllers
                 var photolist = phList.ToList<Photo>();
                 for (int i = 0; i < photolist.Count(); i++)
                 {
-                    if (Service.IsFromLast24h(photolist[i].TimePosted))
+                    if (true || Service.IsFromLast24h(photolist[i].TimePosted)) //remove true in production
                     {
                         photolist[i] = Service.ComputePhotoProp(Mail, photolist[i]);
                         var ph = photolist[i];
@@ -340,11 +340,12 @@ namespace Instakilogram.Controllers
 
             foreach (Hashtag h in htagsFollowed)
             {
-                var  singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
-                if(singleHphotos != null) {
+                var singleHphotos = await this.Service.GetHtagImages(Mail, h.Title);
+                if (singleHphotos != null)
+                {
                     for (int i = 0; i < singleHphotos.Count(); i++)
                     {
-                        if (!Service.IsFromLast24h(singleHphotos[i].TimePosted))
+                        if (!(true || Service.IsFromLast24h(singleHphotos[i].TimePosted))) //remove true in production
                         {
                             singleHphotos.Remove(singleHphotos[i]);
                         }
@@ -365,7 +366,7 @@ namespace Instakilogram.Controllers
         {
             string Mail = (string)HttpContext.Items["User"];
             var db = this.Redis.GetDatabase();
-       
+
             var listOfPhotos = new List<Photo>();
 
             if (db.KeyExists("latest12"))
@@ -377,10 +378,10 @@ namespace Instakilogram.Controllers
 
 
                     Photo photo = JsonConvert.DeserializeObject<Photo>(rv);
-                    photo =  this.Service.ComputePhotoProp(Mail, photo);
+                    photo = this.Service.ComputePhotoProp(Mail, photo);
                     listOfPhotos.Add(photo);
                 }
-               
+
             }
             return Ok(listOfPhotos);
         }
@@ -404,7 +405,19 @@ namespace Instakilogram.Controllers
             return Ok(photolist);
         }
 
-
-      
+        [HttpGet]
+        [Route("GetTop")]
+        public async Task<IActionResult> GetTop()
+        {
+            var phList = await this.Neo.Cypher
+              .Match("(a:Photo)")
+              .With("a")
+           
+              .Return<Photo>("a")
+              .OrderBy("a.NumberOfLikes DESC")
+              .Limit(10).ResultsAsync;
+          
+            return Ok(phList);
+        }
     }
 }
