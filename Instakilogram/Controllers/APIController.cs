@@ -228,7 +228,7 @@ namespace Instakilogram.Controllers
         {
             string Mail = (string)HttpContext.Items["User"];
 
-            int minimumConnectedPeople = 2;
+            int minimumConnectedPeople = 1;
 
             Dictionary<User, int> peopleToRecommend = new Dictionary<User, int>();
 
@@ -446,6 +446,13 @@ namespace Instakilogram.Controllers
             }
             return Ok(matchingHtagsC);
 
+        }
+    }
+    public static class StringExtensions
+    {
+        public static bool Contains(this string source, string toCheck, StringComparison comp)
+        {
+            return source?.IndexOf(toCheck, comp) >= 0;
         }
     }
 }
