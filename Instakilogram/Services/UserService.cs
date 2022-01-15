@@ -107,7 +107,7 @@ namespace Instakilogram.Service
             //
             var db = Redis.GetDatabase();     
             db.ListLeftPush("latest12", JsonConvert.SerializeObject(ph.Metadata.Path));
-            db.ListTrim("latest12", 12, -1);
+            db.ListTrim("latest12", 0, 11);
             //
             return ph.Metadata.Path;
         }
