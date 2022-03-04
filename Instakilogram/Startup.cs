@@ -5,18 +5,18 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Instakilogram.Config;
-using Instakilogram.Service;
-using Instakilogram.Authentication;
+using Imagebook.Config;
+using Imagebook.Service;
+using Imagebook.Authentication;
 //using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using Neo4jClient;
 using System;
 using StackExchange.Redis;
-using Instakilogram.Service;
+using Imagebook.Service;
 
-namespace Instakilogram
+namespace Imagebook
 {
     public class Startup
     {

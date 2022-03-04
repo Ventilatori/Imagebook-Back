@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Config
+namespace Imagebook.Config
 {
     public class Neo4jConfig
     {

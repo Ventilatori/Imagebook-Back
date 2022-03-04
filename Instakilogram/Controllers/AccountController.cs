@@ -1,6 +1,6 @@
-﻿using Instakilogram.Models;
-using Instakilogram.RequestResponse;
-using Instakilogram.Service;
+﻿using Imagebook.Models;
+using Imagebook.RequestResponse;
+using Imagebook.Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Neo4jClient;
@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using Instakilogram.Authentication;
+using Imagebook.Authentication;
 using System.IO;
 
-namespace Instakilogram.Controllers
+namespace Imagebook.Controllers
 {
     [Route("[controller]")]
     [ApiController]

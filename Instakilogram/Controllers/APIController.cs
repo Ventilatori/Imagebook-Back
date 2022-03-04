@@ -1,5 +1,5 @@
-﻿using Instakilogram.Models;
-using Instakilogram.Service;
+﻿using Imagebook.Models;
+using Imagebook.Service;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
@@ -10,15 +10,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Instakilogram.Models;
+using Imagebook.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
-using Instakilogram.RequestResponse;
+using Imagebook.RequestResponse;
 using StackExchange.Redis;
 
-namespace Instakilogram.Controllers
+namespace Imagebook.Controllers
 {
 
     [ApiController]

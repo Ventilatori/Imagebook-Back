@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Service
+namespace Imagebook.Service
 {
     public class MailSettings
     {

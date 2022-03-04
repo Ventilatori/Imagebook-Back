@@ -1,5 +1,5 @@
-﻿using Instakilogram.RequestResponse;
-using Instakilogram.Service;
+﻿using Imagebook.RequestResponse;
+using Imagebook.Service;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Neo4jClient;
@@ -8,12 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Instakilogram.RequestResponse;
+using Imagebook.RequestResponse;
 using StackExchange.Redis;
 using System.IO;
-using Instakilogram.Models;
+using Imagebook.Models;
 
-namespace Instakilogram.Controllers
+namespace Imagebook.Controllers
 {
 
     [Route("[controller]")]

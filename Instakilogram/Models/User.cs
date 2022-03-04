@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Models
+namespace Imagebook.Models
 {
     public class User
     {

@@ -10,14 +10,14 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using Neo4jClient;
-using Instakilogram.Models;
+using Imagebook.Models;
 using StackExchange.Redis;
 using Newtonsoft.Json;
-using Instakilogram.RequestResponse;
-using Instakilogram.Services;
+using Imagebook.RequestResponse;
+using Imagebook.Services;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Service
+namespace Imagebook.Service
 {
     public interface IUserService
     {

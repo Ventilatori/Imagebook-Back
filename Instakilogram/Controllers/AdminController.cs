@@ -1,5 +1,5 @@
-﻿using Instakilogram.Authentication;
-using Instakilogram.Service;
+﻿using Imagebook.Authentication;
+using Imagebook.Service;
 using Microsoft.AspNetCore.Mvc;
 using Neo4jClient;
 using System;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Controllers
+namespace Imagebook.Controllers
 {
     [Auth("Admin")]
     [ApiController]

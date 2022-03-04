@@ -1,4 +1,4 @@
-using Instakilogram.Service;
+using Imagebook.Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Neo4jClient;
@@ -9,7 +9,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Instakilogram.Authentication
+namespace Imagebook.Authentication
 {
     public class CookieMiddleware
     {
