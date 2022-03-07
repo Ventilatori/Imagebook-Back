@@ -1,4 +1,4 @@
-# ImageBook Frontend
+# ImageBook Backend
 
 Backend for the ImageBook web app, a social media site based on heavily interlinked images. Frontend can be found [here](https://github.com/Ventilatori/Imagebook-Front) .
 
